@@ -1,0 +1,57 @@
+{
+  "patient_id": "patient-001",
+  "demographics": {
+    "name": "김민수",
+    "age": 45,
+    "gender": "M",
+    "height_cm": 172,
+    "weight_kg": 78,
+    "bmi": 26.4,
+    "blood_type": "A+",
+    "checkup_date": "2026-07-15",
+    "medical_history": ["고혈압 가족력", "흡연력 10년(현재 금연 2년)"]
+  },
+  "lab_results": {
+    "CBC": {
+      "WBC": {"value": 12.5, "unit": "10^3/uL", "ref_low": 4.0, "ref_high": 10.0, "flag": "HIGH"},
+      "RBC": {"value": 4.8, "unit": "10^6/uL", "ref_low": 4.2, "ref_high": 5.8, "flag": "NORMAL"},
+      "Hemoglobin": {"value": 15.2, "unit": "g/dL", "ref_low": 13.0, "ref_high": 17.0, "flag": "NORMAL"},
+      "Hematocrit": {"value": 44.5, "unit": "%", "ref_low": 39.0, "ref_high": 51.0, "flag": "NORMAL"},
+      "Platelet": {"value": 245, "unit": "10^3/uL", "ref_low": 150, "ref_high": 400, "flag": "NORMAL"}
+    },
+    "LIPID": {
+      "TotalCholesterol": {"value": 235, "unit": "mg/dL", "ref_low": 0, "ref_high": 200, "flag": "HIGH"},
+      "LDL": {"value": 145, "unit": "mg/dL", "ref_low": 0, "ref_high": 130, "flag": "HIGH"},
+      "HDL": {"value": 48, "unit": "mg/dL", "ref_low": 40, "ref_high": 60, "flag": "NORMAL"},
+      "Triglyceride": {"value": 180, "unit": "mg/dL", "ref_low": 0, "ref_high": 150, "flag": "HIGH"}
+    },
+    "METABOLIC": {
+      "FastingGlucose": {"value": 115, "unit": "mg/dL", "ref_low": 70, "ref_high": 100, "flag": "HIGH"},
+      "HbA1c": {"value": 5.9, "unit": "%", "ref_low": 4.0, "ref_high": 5.7, "flag": "HIGH"},
+      "BUN": {"value": 15, "unit": "mg/dL", "ref_low": 7, "ref_high": 20, "flag": "NORMAL"},
+      "Creatinine": {"value": 0.9, "unit": "mg/dL", "ref_low": 0.7, "ref_high": 1.3, "flag": "NORMAL"}
+    },
+    "LIVER": {
+      "AST": {"value": 28, "unit": "U/L", "ref_low": 0, "ref_high": 40, "flag": "NORMAL"},
+      "ALT": {"value": 32, "unit": "U/L", "ref_low": 0, "ref_high": 41, "flag": "NORMAL"},
+      "GGT": {"value": 45, "unit": "U/L", "ref_low": 11, "ref_high": 51, "flag": "NORMAL"},
+      "ALP": {"value": 78, "unit": "U/L", "ref_low": 40, "ref_high": 130, "flag": "NORMAL"}
+    }
+  },
+  "checkup_summary": {
+    "overall_grade": "B",
+    "abnormal_count": 5,
+    "abnormal_items": [
+      "WBC 12.5 (높음 - 경계)",
+      "공복혈당 115 (높음 - 경계)",
+      "총콜레스테롤 235 (높음 - 경계)",
+      "LDL 145 (높음 - 경계)",
+      "중성지방 180 (높음 - 경계)"
+    ],
+    "recommendations": [
+      "혈액내과 추가 검사 권고 (WBC 상승 원인 확인)",
+      "내분비내과 추가 검사 권고 (공복혈당/HbA1c 경계)",
+      "심장내과 진료 권고 (이상지질혈증 관리)"
+    ]
+  }
+}
