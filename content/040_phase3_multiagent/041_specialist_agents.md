@@ -16,15 +16,40 @@ time: "90분"
 
 ### 왜 멀티 에이전트가 필요한가?
 
-싱글 에이전트로 모든 작업을 처리하면:
-- 시스템 프롬프트가 비대해져 성능 저하
-- 도구가 많아지면 LLM의 도구 선택 정확도 하락
-- 하나의 에이전트에 너무 많은 책임이 집중
+싱글 에이전트의 한계는 **도구 수 증가에 따른 성능 저하**로 나타납니다:
 
-**멀티 에이전트 패턴**은 각 에이전트에 명확한 역할과 전문 도구를 부여하여:
-- 각 에이전트의 프롬프트를 간결하게 유지
-- 도구 선택 정확도 향상
-- 독립적인 테스트와 개선 가능
+**문제 1: Tool Selection Accuracy 하락**
+
+LLM이 선택해야 할 도구가 많아질수록 정확도가 떨어집니다. 연구에 따르면 도구가 10개를 넘어가면 선택 정확도가 급격히 하락합니다.
+
+```
+도구 3개:  정확도 ~95%   ← Phase 1 (search, urgency, lab)
+도구 7개:  정확도 ~85%   ← Phase 2 (+ analyze, memory, audit)
+도구 15개: 정확도 ~65%   ← 모든 기능을 한 에이전트에 넣으면
+```
+
+**문제 2: 시스템 프롬프트 비대화**
+
+하나의 에이전트에 모든 역할을 부여하면:
+- Triage 규칙 + Analysis 기준 + Recommendation 가이드라인 + 보안 규칙 = 수천 토큰
+- 프롬프트가 길어질수록 LLM의 지시 준수율(instruction following) 저하
+- 상충하는 규칙 간 충돌 가능 (예: "상세히 분석하라" vs "간결하게 답하라")
+
+**문제 3: 테스트/디버깅 어려움**
+
+모놀리식 에이전트에서는:
+- "분석이 잘못된 건 Triage 로직 때문인지, Analysis 로직 때문인지" 분리 불가
+- 하나를 수정하면 다른 기능에 영향 (regression)
+- 도구별 독립적 단위 테스트 불가
+
+**멀티 에이전트로 해결:**
+
+| 싱글 에이전트 문제 | 멀티 에이전트 해결 |
+|-------------------|------------------|
+| 도구 15개 → 선택 정확도 65% | 에이전트당 2-3개 도구 → 95% 유지 |
+| 시스템 프롬프트 3,000 토큰 | 에이전트당 500 토큰 (역할 집중) |
+| 에러 원인 추적 불가 | 에이전트별 독립 로그 + 개별 테스트 |
+| 하나의 변경 → 전체 영향 | 에이전트별 독립 배포/롤백 가능 |
 
 ### Agent-as-Tool 패턴
 
@@ -38,6 +63,86 @@ Supervisor Agent
 ```
 
 각 전문 에이전트를 `@tool` 함수로 래핑하면, Supervisor가 일반 도구처럼 호출할 수 있습니다.
+
+### 멀티 에이전트 오케스트레이션 패턴 비교
+
+멀티 에이전트를 조율하는 방식은 크게 3가지가 있습니다:
+
+| 패턴 | 구조 | 특징 | 적합한 경우 |
+|------|------|------|-----------|
+| **Graph** | 노드(에이전트) + 엣지(데이터 흐름)를 DAG로 정의 | 실행 순서가 명시적, 조건부 분기 가능 | 워크플로우가 고정된 파이프라인 (예: ETL, 순차 분석) |
+| **Swarm** | 에이전트들이 자율적으로 핸드오프 (다음 에이전트를 스스로 결정) | 중앙 조율자 없음, 에이전트 간 직접 위임 | 동적 라우팅, 고객 지원 (상담 → 기술 → 결제 전환) |
+| **Supervisor (본 워크샵)** | 중앙 Supervisor가 전문 에이전트를 도구로 호출 | LLM이 호출 순서 결정, 단순 구현 | 전문가 협업, 분석 보고서 생성 |
+
+```
+[Graph 패턴]                    [Swarm 패턴]                [Supervisor 패턴]
+
+A → B → C                      A ←→ B ←→ C              Supervisor
+    ↘ D ↗                      (자율 핸드오프)              ├→ A
+(DAG 고정 흐름)                 (탈중앙)                    ├→ B
+                                                            └→ C
+                                                          (중앙 조율)
+```
+
+**Graph**: LangGraph에서 주로 사용. 노드 간 엣지를 명시적으로 정의하여 실행 순서를 제어합니다. 조건부 분기(`if 긴급 → 응급경로`)가 가능하지만 유연성이 제한됩니다.
+
+```python
+from strands import Agent
+from strands.models import BedrockModel
+from strands.multiagent.graph import GraphBuilder
+
+# 에이전트 정의
+triage = Agent(model=BedrockModel(...), system_prompt="분류 전문가")
+analysis = Agent(model=BedrockModel(...), system_prompt="분석 전문가")
+recommendation = Agent(model=BedrockModel(...), system_prompt="권고 전문가")
+
+# Graph 빌드 (DAG 구조 — 실행 순서를 엣지로 명시)
+builder = GraphBuilder()
+triage_node = builder.add_node(triage, node_id="triage")
+analysis_node = builder.add_node(analysis, node_id="analysis")
+rec_node = builder.add_node(recommendation, node_id="recommendation")
+
+builder.add_edge(triage_node, analysis_node)     # triage → analysis
+builder.add_edge(analysis_node, rec_node)        # analysis → recommendation
+builder.set_entry_point("triage")
+builder.set_max_node_executions(10)
+
+graph = builder.build()
+result = graph("patient-001의 건강검진 결과를 분석해 주세요")
+```
+
+**Swarm**: OpenAI Swarm, Strands Swarm에서 지원. 현재 에이전트가 "다음은 B가 처리해야 해"라고 판단하면 자동 전환됩니다. 중앙 조율자 없이 에이전트끼리 직접 대화합니다.
+
+```python
+from strands import Agent
+from strands.models import BedrockModel
+from strands.multiagent.swarm import Swarm
+
+# 에이전트 — 시스템 프롬프트에서 핸드오프 대상을 지시
+triage = Agent(model=BedrockModel(...),
+    system_prompt="분류 전문가. 완료 후 'analysis'에게 핸드오프하세요.")
+analysis = Agent(model=BedrockModel(...),
+    system_prompt="분석 전문가. 완료 후 'recommendation'에게 핸드오프하세요.")
+recommendation = Agent(model=BedrockModel(...),
+    system_prompt="건강관리 전문가. 최종 권고를 생성하고 종료하세요.")
+
+# Swarm — 에이전트들이 자율적으로 핸드오프
+swarm = Swarm(
+    nodes=[triage, analysis, recommendation],
+    entry_point=triage,
+    max_handoffs=10,
+    execution_timeout=300.0
+)
+
+result = swarm("patient-001의 건강검진 결과를 종합 분석해 주세요")
+```
+
+**Supervisor (Agent-as-Tool)**: 본 워크샵에서 사용하는 패턴. 구현이 간단하고, Supervisor의 시스템 프롬프트로 호출 순서를 유연하게 제어할 수 있습니다.
+
+> **본 워크샵에서 Supervisor 패턴을 선택한 이유:**
+> - 구현 복잡도가 낮아 워크샵 시간 내 완성 가능
+> - 종합 보고서 생성에 적합 (순차적 전문가 의견 수집)
+> - Strands SDK의 `@tool` 데코레이터만으로 구현 가능
 
 ### 본 워크샵의 에이전트 구성
 
@@ -171,7 +276,7 @@ triage_agent = Agent(
         model_id="________",  # TODO: 글로벌 추론 프로파일 Model ID
         region_name="us-west-2"
     ),
-    tools=[________],  # TODO: 위에서 정의한 도구 2개
+    tools=[________, ________],  # TODO: 위에서 정의한 도구 2개
     system_prompt=________  # TODO: 시스템 프롬프트 변수명
 )
 ```
@@ -288,7 +393,7 @@ analysis_agent = Agent(
         model_id="________",
         region_name="us-west-2"
     ),
-    tools=[________],  # TODO: 위에서 정의한 도구 2개
+    tools=[________, ________],  # TODO: 위에서 정의한 도구 2개
     system_prompt=________
 )
 ```
@@ -453,7 +558,7 @@ recommendation_agent = Agent(
         model_id="________",
         region_name="us-west-2"
     ),
-    tools=[________],  # TODO: 위에서 정의한 도구 3개
+    tools=[________, ________, ________],  # TODO: 위에서 정의한 도구 3개
     system_prompt=________
 )
 ```
@@ -508,3 +613,72 @@ print(response.message['content'][0]['text'])
 ---
 
 완료 후 [Phase 3-B: Supervisor Agent 구현](./042_supervisor.md)으로 이동하세요.
+
+---
+
+## 부록: 정답 코드
+
+<details>
+<summary>TODO ①~② 정답: Triage Agent 도구 호출 (클릭하여 펼치기)</summary>
+
+```python
+@tool
+def classify_health_risk(patient_id: str) -> str:
+    # TODO ①: get_lab_results 도구를 호출하여 환자 데이터를 가져오세요
+    raw_results = get_lab_results(patient_id=patient_id, test_type="all")
+    
+    # TODO ②: analyze_lab_values 도구를 호출하여 분석 결과를 가져오세요
+    analysis = analyze_lab_values(patient_id=patient_id)
+    
+    return f"[분류 완료]\n{analysis}"
+```
+
+</details>
+
+<details>
+<summary>TODO ③ 정답: Triage Agent 생성 (클릭하여 펼치기)</summary>
+
+```python
+triage_agent = Agent(
+    model=BedrockModel(
+        model_id="global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        region_name="us-west-2"
+    ),
+    tools=[classify_health_risk, prioritize_followup],
+    system_prompt=TRIAGE_SYSTEM_PROMPT
+)
+```
+
+</details>
+
+<details>
+<summary>TODO ④ 정답: Analysis Agent 생성 (클릭하여 펼치기)</summary>
+
+```python
+analysis_agent = Agent(
+    model=BedrockModel(
+        model_id="global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        region_name="us-west-2"
+    ),
+    tools=[analyze_correlation, suggest_additional_tests],
+    system_prompt=ANALYSIS_SYSTEM_PROMPT
+)
+```
+
+</details>
+
+<details>
+<summary>TODO ⑤ 정답: Recommendation Agent 생성 (클릭하여 펼치기)</summary>
+
+```python
+recommendation_agent = Agent(
+    model=BedrockModel(
+        model_id="global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        region_name="us-west-2"
+    ),
+    tools=[generate_diet_plan, generate_exercise_plan, generate_followup_schedule],
+    system_prompt=RECOMMENDATION_SYSTEM_PROMPT
+)
+```
+
+</details>
