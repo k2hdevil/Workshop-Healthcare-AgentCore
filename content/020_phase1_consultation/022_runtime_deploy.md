@@ -302,7 +302,7 @@ trust_policy = {
     "Version": "2012-10-17",
     "Statement": [{
         "Effect": "Allow",
-        "Principal": {"Service": "bedrock-agentcore.amazonaws.com"},
+        "Principal": {"Service": "________"},  # TODO ①: AgentCore 서비스가 이 Role을 assume할 수 있도록 서비스 프린시펄을 채우세요
         "Action": "sts:AssumeRole"
     }]
 }
@@ -322,7 +322,7 @@ except iam.exceptions.EntityAlreadyExistsException:
 # AWS 관리형 정책 부여
 iam.attach_role_policy(
     RoleName=ROLE_NAME,
-    PolicyArn="arn:aws:iam::aws:policy/AdministratorAccess"
+    PolicyArn="arn:aws:iam::aws:policy/________"  # TODO ②: Runtime이 Bedrock 모델을 호출하고 로그를 쓸 수 있는 관리형 정책 이름을 채우세요
 )
 print(f"✓ 관리형 정책 부여 완료")
 
@@ -332,7 +332,7 @@ try:
     ecr.describe_repositories(repositoryNames=[ECR_REPO_NAME])
     print(f"✓ ECR 리포지토리 존재: {ECR_REPO_NAME}")
 except ecr.exceptions.RepositoryNotFoundException:
-    ecr.create_repository(repositoryName=ECR_REPO_NAME)
+    ecr.________(repositoryName=ECR_REPO_NAME)  # TODO ③: ECR 리포지토리를 생성하는 API를 채우세요
     print(f"✓ ECR 리포지토리 생성: {ECR_REPO_NAME}")
 
 # === 3단계: Docker 이미지 태그 + ECR 푸시 ===
@@ -348,17 +348,17 @@ subprocess.run(f"docker push {ECR_URI}", shell=True, check=True)
 print(f"✓ ECR 푸시 완료")
 
 # === 4단계: AgentCore Runtime 생성 ===
-agentcore = boto3.client("bedrock-agentcore-control", region_name=REGION)
+agentcore = boto3.client("________", region_name=REGION)  # TODO ④: AgentCore 컨트롤 플레인 서비스 이름을 채우세요
 
 try:
-    response = agentcore.create_agent_runtime(
+    response = agentcore.________(  # TODO ⑤: Runtime을 생성하는 API 이름을 채우세요
         agentRuntimeName=AGENT_NAME,
         agentRuntimeArtifact={
-            "containerConfiguration": {
+            "________": {  # TODO ⑥: Container 배포 시 사용하는 설정 키를 채우세요 (codeConfiguration 아님)
                 "containerUri": ECR_URI
             }
         },
-        networkConfiguration={"networkMode": "PUBLIC"},
+        networkConfiguration={"networkMode": "________"},  # TODO ⑦: 퍼블릭 네트워크 모드 값을 채우세요
         roleArn=ROLE_ARN,
         lifecycleConfiguration={
             "idleRuntimeSessionTimeout": 900,
@@ -560,6 +560,112 @@ def healthcare_consultation(payload):
 # 로컬 실행 시 HTTP 서버로 동작 (배포 후에는 Runtime이 자동 처리)
 if __name__ == "__main__":
     app.run(port=8888)
+```
+
+</details>
+
+<details>
+<summary>deploy.py 정답 코드 보기 (클릭하여 펼치기)</summary>
+
+```python
+"""
+AgentCore Runtime 배포 스크립트 (Container 방식)
+- IAM Role 생성, Docker 이미지를 ECR에 push하고 Runtime을 생성합니다
+"""
+import boto3
+import json
+import time
+import subprocess
+
+# === 설정 ===
+REGION = "us-west-2"
+AGENT_NAME = "healthcare_consultation_agent"
+ECR_REPO_NAME = "healthcare-consultation-agent"
+IMAGE_TAG = "latest"
+
+# AWS 계정 ID 자동 획득
+sts = boto3.client("sts")
+ACCOUNT_ID = sts.get_caller_identity()["Account"]
+
+ROLE_NAME = f"AmazonBedrockAgentCoreSDKRuntime-{REGION}"
+ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/{ROLE_NAME}"
+ECR_URI = f"{ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com/{ECR_REPO_NAME}:{IMAGE_TAG}"
+
+# === 1단계: IAM Role 생성 (없는 경우) ===
+iam = boto3.client("iam")
+
+trust_policy = {
+    "Version": "2012-10-17",
+    "Statement": [{
+        "Effect": "Allow",
+        "Principal": {"Service": "bedrock-agentcore.amazonaws.com"},
+        "Action": "sts:AssumeRole"
+    }]
+}
+
+try:
+    iam.create_role(
+        RoleName=ROLE_NAME,
+        AssumeRolePolicyDocument=json.dumps(trust_policy),
+        Description="AgentCore Runtime execution role"
+    )
+    print(f"✓ IAM Role 생성: {ROLE_NAME}")
+    print("→ IAM Role 전파 대기 (10초)...")
+    time.sleep(10)
+except iam.exceptions.EntityAlreadyExistsException:
+    print(f"✓ IAM Role 이미 존재: {ROLE_NAME}")
+
+# AWS 관리형 정책 부여
+iam.attach_role_policy(
+    RoleName=ROLE_NAME,
+    PolicyArn="arn:aws:iam::aws:policy/AdministratorAccess"
+)
+print(f"✓ 관리형 정책 부여 완료")
+
+# === 2단계: ECR 리포지토리 생성 (없는 경우) ===
+ecr = boto3.client("ecr", region_name=REGION)
+try:
+    ecr.describe_repositories(repositoryNames=[ECR_REPO_NAME])
+    print(f"✓ ECR 리포지토리 존재: {ECR_REPO_NAME}")
+except ecr.exceptions.RepositoryNotFoundException:
+    ecr.create_repository(repositoryName=ECR_REPO_NAME)
+    print(f"✓ ECR 리포지토리 생성: {ECR_REPO_NAME}")
+
+# === 3단계: Docker 이미지 태그 + ECR 푸시 ===
+print(f"→ ECR 로그인...")
+login_cmd = f"aws ecr get-login-password --region {REGION} | docker login --username AWS --password-stdin {ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com"
+subprocess.run(login_cmd, shell=True, check=True)
+
+print(f"→ 이미지 태그: healthcare-agent:latest → {ECR_URI}")
+subprocess.run(f"docker tag healthcare-agent:latest {ECR_URI}", shell=True, check=True)
+
+print(f"→ ECR 푸시 중...")
+subprocess.run(f"docker push {ECR_URI}", shell=True, check=True)
+print(f"✓ ECR 푸시 완료")
+
+# === 4단계: AgentCore Runtime 생성 ===
+agentcore = boto3.client("bedrock-agentcore-control", region_name=REGION)
+
+try:
+    response = agentcore.create_agent_runtime(
+        agentRuntimeName=AGENT_NAME,
+        agentRuntimeArtifact={
+            "containerConfiguration": {
+                "containerUri": ECR_URI
+            }
+        },
+        networkConfiguration={"networkMode": "PUBLIC"},
+        roleArn=ROLE_ARN,
+        lifecycleConfiguration={
+            "idleRuntimeSessionTimeout": 900,
+            "maxLifetime": 28800
+        },
+    )
+    print(f"✓ Runtime 생성 완료!")
+    print(f"  ARN: {response['agentRuntimeArn']}")
+    print(f"  Status: {response['status']}")
+except agentcore.exceptions.ConflictException:
+    print("⚠️ 동일 이름의 Runtime이 이미 존재합니다. 삭제 후 재생성하세요.")
 ```
 
 </details>
