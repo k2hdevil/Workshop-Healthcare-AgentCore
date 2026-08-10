@@ -167,9 +167,12 @@ def healthcare_consultation(payload):
     return response.message['content'][0]['text']
 
 
-# 로컬 실행 시 HTTP 서버로 동작 (배포 후에는 Runtime이 자동 처리)
+# 실행 시 HTTP 서버로 동작 (배포 후에는 Runtime이 자동 처리)
 if __name__ == "__main__":
-    app.run()
+# 로컬 테스트시 사용하는 포트입니다.
+    app.run(port=8888)
+# Runtime 배포시 바로 위의 라인을 주석 처리하시고 밑의 라인을 주석 헤제하세요.    
+#    app.run()
 ```
 
 **핵심 포인트:**
