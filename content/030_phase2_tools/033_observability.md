@@ -150,9 +150,54 @@ AgentCore는 Amazon CloudWatch의 **GenAI Observability** 페이지에 데이터
 
 ## 실습 시작
 
-### Step 1: CloudWatch Transaction Search 활성화
+### Step 1: CloudWatch GenAI Observability의 세션, 트레이스 및 스팬 추적
 
-AgentCore Runtime에 배포된 에이전트의 트레이스를 보려면 Transaction Search가 활성화되어 있어야 합니다:
+AgentCore Runtime에서 자동 계측(ADOT)을 활성화하려면 Docker 이미지에 OpenTelemetry를 추가하고 재배포해야 합니다.
+
+**1. `requirements.txt`에 ADOT 패키지 추가:**
+
+```bash
+cd ~/agentcore/src
+echo "aws-opentelemetry-distro" >> requirements.txt
+```
+
+**2. Dockerfile CMD 변경:**
+
+`Dockerfile`의 마지막 줄을 아래와 같이 수정하세요:
+
+```dockerfile
+# 기존: CMD ["python", "main.py"]
+# 변경: opentelemetry-instrument로 자동 계측 활성화
+CMD ["opentelemetry-instrument", "python", "main.py"]
+```
+
+**3. Docker 이미지 재빌드 + Runtime 재배포:**
+
+```bash
+cd ~/agentcore/src
+
+# 이미지 재빌드
+docker build --platform linux/arm64 -t healthcare-agent:latest .
+
+# 기존 Runtime 삭제
+uv run python -c "
+import boto3
+client = boto3.client('bedrock-agentcore-control', region_name='us-west-2')
+for rt in client.list_agent_runtimes().get('agentRuntimes', []):
+    if rt['agentRuntimeName'] == 'healthcare_consultation_agent':
+        client.delete_agent_runtime(agentRuntimeId=rt['agentRuntimeId'])
+        print('삭제 완료')
+        break
+"
+
+# 재배포
+sleep 30
+uv run python deploy.py
+```
+
+> 재배포 후 Runtime 상태가 `READY`가 되면, 이후 호출부터 Trace/Span이 CloudWatch에 자동 기록됩니다.
+
+**4. Transaction Search 활성화 확인:**
 
 ```
 1. AWS 콘솔 → CloudWatch
@@ -163,30 +208,24 @@ AgentCore Runtime에 배포된 에이전트의 트레이스를 보려면 Transac
 
 > 이미 활성화된 계정에서는 버튼 없이 바로 Spans 쿼리 화면이 표시됩니다.
 
-<details>
-<summary>참고: ADOT를 이용한 자동 계측 (AgentCore Runtime 배포 시)</summary>
-
 AgentCore Runtime에 배포된 에이전트는 ADOT(AWS Distro for OpenTelemetry)를 통해 자동 계측됩니다. Runtime이 OTLP Collector를 내장하고 있어 별도 설정 없이 Trace/Span이 CloudWatch에 기록됩니다.
 
-로컬에서 테스트하려면 아래 환경변수를 설정하고 실행합니다:
+이제 `uv run python invoke_agent.py`를 통해서 에이전트를 호출하도록 합니다. 사용자 프롬프트를 아래와 같이 바꾸어가며 진행해주세요:
 
 ```bash
-pip install "aws-opentelemetry-distro>=0.10.0"
 
-export AGENT_OBSERVABILITY_ENABLED=true
-export OTEL_PYTHON_DISTRO=aws_distro
-export OTEL_PYTHON_CONFIGURATOR=aws_configurator
-export OTEL_RESOURCE_ATTRIBUTES="service.name=healthcare-consultation-agent"
-export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-export OTEL_TRACES_EXPORTER=otlp
+# 시나리오 1
+{"prompt": "공복 혈당 수치가 50으로 내려갔어요"}
 
-opentelemetry-instrument python consultation_agent.py
+# 시나리오 2
+{"prompt": "몸무게가 90kg인데 어떻게 다이어트를 해야 할까요"}
+
+# 시나리오 3
+{"prompt": "가슴이 아프고 숨이 차요"}
 ```
 
-> ⚠️ 로컬 환경에서는 OTLP Collector가 없어 `403/404` 에러가 발생합니다. 에이전트 자체는 정상 동작하며, **AgentCore Runtime에 배포하면 자동으로 해결**됩니다.
-
-</details>
-
+각 호출 후 CloudWatch 콘솔에서 Transaction Search → Spans를 확인하면, 에이전트가 어떤 도구를 호출했는지, 각 Span의 소요 시간을 추적할 수 있습니다.
+시간을 내셔서 Session, Trace(Turn), Span을 하나씩 천천히 보세요.
 ---
 
 ### Step 2: 의료 감사 로그 구현
@@ -207,61 +246,61 @@ touch audit_logger.py
 의료 감사 로그 생성기
 - 환자 데이터 접근 시 자동으로 감사 로그 기록
 - 의료법 제21조에 따라 5년(1827일) 보존
+- 주의: @tool이 아닌 일반 함수로 구현 (LLM이 아닌 코드에서 직접 호출)
 """
 import json
 import boto3
 from datetime import datetime
-from strands import tool
 
-logs_client = boto3.client("logs", region_name="us-west-2")
+# CloudWatch Logs 클라이언트 초기화
+logs_client = boto3.client("________", region_name="us-west-2")  # TODO ①: CloudWatch Logs 서비스 이름을 채우세요
+# 감사 로그 전용 로그 그룹 이름
 LOG_GROUP = "/workshop/healthcare-agent/audit"
 
 
 def _ensure_log_group():
-    """로그 그룹이 없으면 생성합니다."""
+    """로그 그룹이 없으면 생성하고 보존 정책을 설정합니다."""
     try:
         logs_client.create_log_group(logGroupName=LOG_GROUP)
         # 의료법 제21조: 의료기록 5년 보존
         logs_client.put_retention_policy(
             logGroupName=LOG_GROUP,
-            retentionInDays=1827  # 약 5년
+            retentionInDays=________  # TODO ②: 5년에 해당하는 일수를 채우세요
         )
     except logs_client.exceptions.ResourceAlreadyExistsException:
+        # 이미 존재하면 무시
         pass
 
 
-@tool
 def log_data_access(patient_id: str, action: str,
-                    data_accessed: str) -> str:
+                    data_accessed: str, authorization: str = "GRANTED",
+                    reason: str = ""):
     """환자 데이터 접근을 감사 로그에 기록합니다.
-
-    Args:
-        patient_id: 접근한 환자 ID
-        action: 수행한 작업 (예: lab_results_query, analyze_values)
-        data_accessed: 접근한 데이터 종류 (예: CBC, LIPID)
-
-    Returns:
-        로그 기록 확인 메시지
+    
+    이 함수는 @tool이 아닌 일반 함수입니다.
+    LLM이 호출하는 것이 아니라, 도구 코드 내부에서 직접 호출합니다.
     """
+    # 로그 그룹 존재 확인 (최초 1회만 실제 생성)
     _ensure_log_group()
 
-    # 감사 이벤트 구조
+    # 감사 이벤트 구조 — 규정 준수에 필요한 모든 필드 포함
     audit_event = {
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.utcnow().isoformat() + "Z",  # UTC 표준 시간
         "event_type": "DATA_ACCESS",
-        "agent_id": "healthcare-consultation-agent",
+        "agent_id": "________",                             # TODO ③: 에이전트 식별자를 채우세요
         "patient_id": patient_id,
         "action": action,
-        "data_accessed": data_accessed.split(", "),
-        "authorization": "GRANTED",
+        "data_accessed": data_accessed.split(", ") if data_accessed else [],
+        "authorization": authorization,                     # GRANTED 또는 DENIED
+        "reason": reason,
         "compliance": {
-            "pipa_consent": True,       # 개인정보보호법 동의
-            "medical_act_21": True      # 의료법 제21조 준수
+            "pipa_consent": authorization == "________",    # TODO ④: 개인정보보호법 동의가 true가 되는 조건을 채우세요
+            "medical_act_21": True
         }
     }
 
-    # CloudWatch Logs에 기록
-    stream_name = datetime.utcnow().strftime("%Y/%m/%d")
+    # 로그 스트림: 날짜별로 구분 (하루 단위)
+    stream_name = datetime.utcnow().strftime("________")   # TODO ⑤: 날짜 포맷을 채우세요 (예: 2026/08/10)
     try:
         logs_client.create_log_stream(
             logGroupName=LOG_GROUP,
@@ -270,43 +309,63 @@ def log_data_access(patient_id: str, action: str,
     except logs_client.exceptions.ResourceAlreadyExistsException:
         pass
 
-    logs_client.put_log_events(
+    # CloudWatch Logs에 감사 이벤트 기록
+    logs_client.________(                                   # TODO ⑥: 로그 이벤트를 기록하는 API 이름을 채우세요
         logGroupName=LOG_GROUP,
         logStreamName=stream_name,
         logEvents=[{
-            "timestamp": int(datetime.utcnow().timestamp() * 1000),
+            "timestamp": int(datetime.utcnow().timestamp() * 1000),  # 밀리초 단위
             "message": json.dumps(audit_event, ensure_ascii=False)
         }]
     )
-
-    return f"감사 로그 기록 완료: {action} on {patient_id}"
 ```
 
-### Step 3: 에이전트에 감사 로그 도구 추가
+> **왜 @tool이 아닌 일반 함수인가?**
+> 감사 로그를 `@tool`로 만들면 LLM이 `authorization` 값을 자의적으로 결정합니다 (예: 접근 거부 상황에서도 "GRANTED"로 기록). 감사 로그는 **코드 레벨에서 자동 기록**되어야 정확성이 보장됩니다.
 
-`consultation_agent.py`를 열고 감사 로그 도구를 추가하세요:
+### Step 3: lab_tools.py에서 감사 로그 직접 호출
+
+`lab_tools.py`에서 데이터 접근 시 감사 로그를 **코드 레벨에서 자동 기록**하도록 라이브러리 import 진행해주시고, `get_lab_results` 함수의 내용을 아래와 같이 교체하세요:
 
 ```python
-# 상단 import 추가
+# lab_tools.py 상단에 import 추가
 from audit_logger import log_data_access
 
-# 에이전트 tools 목록에 추가
-consultation_agent = Agent(
-    ...
-    tools=[
-        search_medical_knowledge,
-        assess_urgency,
-        get_lab_results,
-        analyze_lab_values,
-        log_data_access        # 감사 로그 추가
-    ],
-    ...
-)
+@tool
+def get_lab_results(patient_id: str, test_type: str = "all") -> str:
+    """환자의 혈액 검사 결과를 조회합니다."""
+    ALLOWED_PATIENTS = ["patient-001", "patient-002"]
+
+    if patient_id not in ALLOWED_PATIENTS:
+        # 접근 거부 → DENIED 감사 로그 자동 기록
+        log_data_access(patient_id, "get_lab_results", "", "DENIED", "unauthorized_patient")
+        return f"접근 거부: 환자 {patient_id}의 데이터에 대한 접근 권한이 없습니다."
+
+    # 파일에서 환자 데이터 로드
+    try:
+        data = _load_patient_data(patient_id)
+    except FileNotFoundError as e:
+        return str(e)
+
+    lab_results = data.get("lab_results", {})
+
+    # 접근 허용 → GRANTED 감사 로그 자동 기록
+    log_data_access(patient_id, "get_lab_results", test_type.upper(), "GRANTED")
+
+    if test_type == "all":
+        return json.dumps(lab_results, ensure_ascii=False, indent=2)
+    elif test_type.upper() in lab_results:
+        return json.dumps(lab_results[test_type.upper()], ensure_ascii=False, indent=2)
+    else:
+        available = ", ".join(lab_results.keys())
+        return f"'{test_type}' 검사 유형을 찾을 수 없습니다. 사용 가능한 유형: {available}"
 ```
+
+> **핵심**: `log_data_access`는 에이전트 도구(@tool)가 아니라 일반 함수이므로, LLM의 판단과 무관하게 데이터 접근 시점에 **반드시** 호출됩니다. GRANTED/DENIED 값도 코드 로직이 결정하므로 정확합니다.
 
 ### Step 4: 감사 로그 동작 테스트
 
-에이전트를 실행하고 환자 데이터를 조회하세요:
+에이전트를 실행하고 아래와 같이 환자 데이터를 조회하세요:
 
 ```bash
 python consultation_agent.py
@@ -314,6 +373,12 @@ python consultation_agent.py
 
 ```
 건강검진 결과를 분석해 주세요. patient-001입니다.
+```
+```
+건강검진 결과를 분석해 주세요. patient-002입니다.
+```
+```
+건강검진 결과를 분석해 주세요. patient-003입니다.
 ```
 
 **확인:** 에이전트가 검사 결과 조회 시 `log_data_access`를 호출하여 감사 로그를 기록하는가?
@@ -331,17 +396,39 @@ aws logs filter-log-events \
 
 ```json
 {
-  "timestamp": "2026-08-10T08:30:00Z",
-  "event_type": "DATA_ACCESS",
-  "agent_id": "healthcare-consultation-agent",
-  "patient_id": "patient-001",
-  "action": "analyze_values",
-  "data_accessed": ["CBC", "LIPID", "METABOLIC", "LIVER"],
-  "authorization": "GRANTED",
-  "compliance": {
-    "pipa_consent": true,
-    "medical_act_21": true
-  }
+    "timestamp": "2026-08-10T19:59:40.954062+09:00",
+    "event_type": "DATA_ACCESS",
+    "agent_id": "healthcare-consultation-agent",
+    "patient_id": "patient-001",
+    "action": "get_lab_results",
+    "data_accessed": [
+        "ALL"
+    ],
+    "authorization": "GRANTED",
+    "reason": "",
+    "compliance": {
+        "pipa_consent": true,
+        "medical_act_21": true
+    }
+}
+```
+
+접근 거부 시:
+
+```json
+{
+    "timestamp": "2026-08-10T20:00:23.627025+09:00",
+    "event_type": "DATA_ACCESS",
+    "agent_id": "healthcare-consultation-agent",
+    "patient_id": "patient-003",
+    "action": "get_lab_results",
+    "data_accessed": [],
+    "authorization": "DENIED",
+    "reason": "unauthorized_patient",
+    "compliance": {
+        "pipa_consent": false,
+        "medical_act_21": true
+    }
 }
 ```
 
@@ -362,8 +449,9 @@ aws logs filter-log-events \
 ## 검증
 
 - ✅ CloudWatch Transaction Search 활성화 확인
-- ✅ `audit_logger.py`가 에이전트 도구로 정상 등록됨
-- ✅ 환자 데이터 조회 시 `log_data_access`가 호출됨
+- ✅ `audit_logger.py`가 일반 함수로 구현됨 (LLM 도구가 아님)
+- ✅ 환자 데이터 조회 시 GRANTED 감사 로그가 자동 기록됨
+- ✅ 허용되지 않은 환자 접근 시 DENIED 감사 로그가 자동 기록됨
 - ✅ CloudWatch Logs에 감사 로그가 기록됨 (5년 보존 정책)
 
 ---
@@ -388,3 +476,79 @@ Day 1의 모든 Phase를 완료했습니다.
 
 Day 2에서는 이 에이전트를 **3개 전문 에이전트**로 확장하고,
 **보안/평가/침투 테스트**를 추가합니다.
+
+---
+
+## 부록: 정답 코드
+
+<details>
+<summary>audit_logger.py 정답 코드 보기 (클릭하여 펼치기)</summary>
+
+```python
+"""
+의료 감사 로그 생성기
+- 환자 데이터 접근 시 자동으로 감사 로그 기록
+- 의료법 제21조에 따라 5년(1827일) 보존
+- 주의: @tool이 아닌 일반 함수로 구현 (LLM이 아닌 코드에서 직접 호출)
+"""
+import json
+import boto3
+from datetime import datetime
+
+logs_client = boto3.client("logs", region_name="us-west-2")
+LOG_GROUP = "/workshop/healthcare-agent/audit"
+
+
+def _ensure_log_group():
+    """로그 그룹이 없으면 생성하고 보존 정책을 설정합니다."""
+    try:
+        logs_client.create_log_group(logGroupName=LOG_GROUP)
+        logs_client.put_retention_policy(
+            logGroupName=LOG_GROUP,
+            retentionInDays=1827
+        )
+    except logs_client.exceptions.ResourceAlreadyExistsException:
+        pass
+
+
+def log_data_access(patient_id: str, action: str,
+                    data_accessed: str, authorization: str = "GRANTED",
+                    reason: str = ""):
+    """환자 데이터 접근을 감사 로그에 기록합니다."""
+    _ensure_log_group()
+
+    audit_event = {
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "event_type": "DATA_ACCESS",
+        "agent_id": "healthcare-consultation-agent",
+        "patient_id": patient_id,
+        "action": action,
+        "data_accessed": data_accessed.split(", ") if data_accessed else [],
+        "authorization": authorization,
+        "reason": reason,
+        "compliance": {
+            "pipa_consent": authorization == "GRANTED",
+            "medical_act_21": True
+        }
+    }
+
+    stream_name = datetime.utcnow().strftime("%Y/%m/%d")
+    try:
+        logs_client.create_log_stream(
+            logGroupName=LOG_GROUP,
+            logStreamName=stream_name
+        )
+    except logs_client.exceptions.ResourceAlreadyExistsException:
+        pass
+
+    logs_client.put_log_events(
+        logGroupName=LOG_GROUP,
+        logStreamName=stream_name,
+        logEvents=[{
+            "timestamp": int(datetime.utcnow().timestamp() * 1000),
+            "message": json.dumps(audit_event, ensure_ascii=False)
+        }]
+    )
+```
+
+</details>

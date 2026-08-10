@@ -229,8 +229,12 @@ def get_lab_results(patient_id: str, test_type: str = "all") -> str:
         검사 결과 텍스트 (JSON 형식)
     """
     # [안전성 원칙] 접근 제어: 허가된 환자 ID만 조회 가능
-    if patient_id != "patient-001":
+    ALLOWED_PATIENTS = ["patient-001", "patient-002"]
+    
+    if patient_id not in ALLOWED_PATIENTS:
         return f"접근 거부: 환자 {patient_id}의 데이터에 대한 접근 권한이 없습니다."
+#    if patient_id != "patient-001":
+#        return f"접근 거부: 환자 {patient_id}의 데이터에 대한 접근 권한이 없습니다."
     
     # 파일에서 환자 데이터 로드 시도
     try:
@@ -305,8 +309,10 @@ def analyze_lab_values(patient_id: str) -> str:
         종합 분석 결과 (등급별 분류 + 비정상 항목 요약)
     """
     # [안전성 원칙] 접근 제어
-    if patient_id != "patient-001":
+    if patient_id not in ALLOWED_PATIENTS:
         return f"접근 거부: 환자 {patient_id}의 데이터에 대한 접근 권한이 없습니다."
+#    if patient_id != "patient-001":
+#        return f"접근 거부: 환자 {patient_id}의 데이터에 대한 접근 권한이 없습니다."
     
     try:
         data = _load_patient_data(patient_id)
