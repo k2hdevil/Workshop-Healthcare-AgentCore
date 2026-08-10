@@ -169,7 +169,7 @@ def healthcare_consultation(payload):
 
 # 로컬 실행 시 HTTP 서버로 동작 (배포 후에는 Runtime이 자동 처리)
 if __name__ == "__main__":
-    app.run(port=8888)
+    app.run()
 ```
 
 **핵심 포인트:**
@@ -436,11 +436,11 @@ response = client.invoke_agent_runtime(
     qualifier="DEFAULT"
 )
 
-# 응답 파싱
-content = []
+# 응답 파싱 (바이트를 먼저 합친 후 디코딩)
+raw = b""
 for chunk in response.get("response", []):
-    content.append(chunk.decode("utf-8"))
-print("".join(content))
+    raw += chunk
+print(raw.decode("utf-8"))
 ```
 
 실행:
