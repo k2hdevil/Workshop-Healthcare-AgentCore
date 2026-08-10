@@ -391,36 +391,8 @@ response = client.list_agent_runtimes()
 for rt in response.get('agentRuntimes', []):
     print(f\"Name: {rt['agentRuntimeName']} | Status: {rt['status']} | ID: {rt['agentRuntimeId']}\")
 "
-```
-                "entryPoint": ["main.py"]
-            }
-        },
-    )
-    print(f"✓ Runtime 업데이트 완료!")
-    print(f"  ARN: {response['agentRuntimeArn']}")
-    print(f"  Status: {response['status']}")
-```
-
-배포 실행:
-
-```bash
-cd ~/agentcore/src
-uv run python deploy.py
-```
 
 > **참고**: Runtime 생성 후 상태가 `ACTIVE`가 될 때까지 3~5분 소요될 수 있습니다.
-
-**상태 확인:**
-
-```bash
-uv run python -c "
-import boto3, json
-client = boto3.client('bedrock-agentcore-control', region_name='us-west-2')
-response = client.list_agent_runtimes()
-for rt in response.get('agentRuntimes', []):
-    print(f\"Name: {rt['agentRuntimeName']} | Status: {rt['status']} | ID: {rt['agentRuntimeId']}\")
-"
-```
 
 ---
 
