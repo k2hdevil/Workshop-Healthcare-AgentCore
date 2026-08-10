@@ -391,6 +391,7 @@ response = client.list_agent_runtimes()
 for rt in response.get('agentRuntimes', []):
     print(f\"Name: {rt['agentRuntimeName']} | Status: {rt['status']} | ID: {rt['agentRuntimeId']}\")
 "
+```
 
 > **참고**: Runtime 생성 후 상태가 `ACTIVE`가 될 때까지 3~5분 소요될 수 있습니다.
 
