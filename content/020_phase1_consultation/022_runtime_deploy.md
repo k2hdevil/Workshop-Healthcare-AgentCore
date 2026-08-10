@@ -76,8 +76,8 @@ AgentCore Runtime은 코드를 받는 **배포 방식** 2가지와, 이를 실�
 
 | 배포 방식 | 설명 | 적합한 경우 | 콜드스타트 |
 |-----------|------|-----------|-----------|
-| **Direct Code Deploy (CodeZip)** | Python/Node.js 코드와 의존성을 zip으로 패키징하여 업로드. AWS가 런타임 환경(Python, 보안 패치)을 관리. | 빠른 반복 개발, 커스텀 런타임 불필요 시. **본 워크샵에서 사용** | ~5초 |
-| **Container (ECR)** | Docker 이미지를 ECR에 push하고 Runtime이 pull. 완전한 환경 제어. | GPU 필요, 커스텀 시스템 패키지, 대형 의존성 | ~10-15초 |
+| **Direct Code Deploy (CodeZip)** | Python/Node.js 코드와 의존성을 zip으로 패키징하여 업로드. AWS가 런타임 환경(Python, 보안 패치)을 관리. | 빠른 반복 개발, 커스텀 런타임 불필요 시 | ~5초 |
+| **Container (ECR)** | Docker 이미지를 ECR에 push하고 Runtime이 pull. 완전한 환경 제어. | GPU 필요, 커스텀 시스템 패키지, 대형 의존성. **본 워크샵에서 사용** | ~10-15초 |
 
 **배포 도구 (배포 방식을 실행하는 인터페이스):**
 
@@ -91,15 +91,15 @@ AgentCore Runtime은 코드를 받는 **배포 방식** 2가지와, 이를 실�
 ```
 개발자 PC                        AWS
 ─────────                        ───
-1. uv pip install --target
-   └→ 의존성 다운로드
-2. zip 패키징                   → 3. S3 업로드
+1. docker build
+   └→ 이미지 빌드
+2. docker push                  → 3. ECR에 이미지 저장
                                  → 4. create_agent_runtime API 호출
                                  → 5. Runtime 생성 + DEFAULT 엔드포인트
-                                 → 6. 상태: ACTIVE
+                                 → 6. 상태: READY
 
 7. invoke_agent_runtime
-   └→ API 호출                  → 8. microVM 할당
+   └→ API 호출                  → 8. microVM 할당 (이미지에서 컨테이너 시작)
                                  → 9. @app.entrypoint 함수 실행
                                  → 10. 응답 반환
 ```
@@ -108,10 +108,10 @@ AgentCore Runtime은 코드를 받는 **배포 방식** 2가지와, 이를 실�
 
 ## 실습: AgentCore Runtime 배포 순서
 
-AWS SDK(boto3)를 사용한 Direct Code Deploy 방식으로 배포합니다. 아래 5단계로 진행됩니다:
+AWS SDK(boto3)를 사용한 Container 배포 방식으로 배포합니다. 아래 5단계로 진행됩니다:
 
 ```
-① 엔트리포인트 작성 → ② 배포 패키지 생성 → ③ 로컬 테스트 → ④ S3 업로드 + Runtime 생성 → ⑤ 호출 테스트
+① 엔트리포인트 작성 → ② Docker 이미지 빌드 → ③ 로컬 테스트 → ④ ECR 업로드 + Runtime 생성 → ⑤ 호출 테스트
 ```
 
 ---
@@ -180,38 +180,56 @@ if __name__ == "__main__":
 
 ---
 
-### ② 배포 패키지 생성 (zip)
+### ② Docker 이미지 빌드
 
-Runtime에 업로드할 zip 파일을 생성합니다. **의존성을 미리 포함**시켜야 콜드스타트가 빨라집니다.
+Runtime에 배포할 Docker 이미지를 생성합니다. 의존성이 이미지에 포함되므로 콜드스타트가 안정적입니다.
+
+먼저 `Dockerfile`을 생성하세요:
 
 ```bash
 cd ~/agentcore/src
-
-# 1. 의존성을 deployment_package/ 디렉토리에 설치 (ARM64 호환)
-uv pip install \
-  --python-platform aarch64-manylinux2014 \
-  --python-version 3.12 \
-  --target=deployment_package \
-  --only-binary=:all: \
-  strands-agents bedrock-agentcore boto3
-
-# 2. 의존성 폴더를 zip으로 압축
-cd deployment_package
-zip -r ../deployment_package.zip .
-cd ..
-
-# 3. 에이전트 코드 파일을 zip 루트에 추가
-zip deployment_package.zip main.py consultation_agent.py
+touch Dockerfile
 ```
 
-> **참고**: `--only-binary=:all:`은 사전 빌드된 wheel만 설치합니다. 일부 패키지에서 오류가 나면 `--only-binary=:all:`을 제거하고 다시 시도하세요.
+`Dockerfile`을 열고 아래 내용을 작성하세요:
 
-생성된 zip 파일 크기 확인:
+```dockerfile
+FROM --platform=linux/arm64 python:3.12-slim
+
+WORKDIR /opt/app
+
+# 의존성 설치
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 에이전트 코드 복사
+COPY *.py ./
+
+# AgentCore Runtime이 사용하는 포트
+EXPOSE 8080
+
+# 엔트리포인트
+CMD ["python", "main.py"]
+```
+
+`requirements.txt`를 생성하세요:
 
 ```bash
-ls -lh deployment_package.zip
-# 250MB 이하여야 합니다
+cat > ~/agentcore/src/requirements.txt << 'EOF'
+strands-agents>=1.0.0
+bedrock-agentcore>=1.0.0
+boto3>=1.35.0
+EOF
 ```
+
+Docker 이미지를 빌드합니다 (ARM64 대상):
+
+```bash
+cd ~/agentcore/src
+docker build --no-cache --platform linux/arm64 -t healthcare-agent:latest .
+```
+
+> **참고**: AgentCore Runtime은 ARM64(Graviton) 아키텍처에서 실행됩니다. `--platform linux/arm64` 플래그를 반드시 포함하세요.
 
 ---
 
@@ -242,9 +260,9 @@ curl -s -X POST http://localhost:8888/invocations \
 
 ---
 
-### ④ S3 업로드 + Runtime 생성
+### ④ ECR 업로드 + Runtime 생성
 
-배포 스크립트 `deploy.py`를 작성하여 S3 업로드와 Runtime 생성을 수행합니다.
+배포 스크립트 `deploy.py`를 작성하여 ECR에 이미지를 push하고 Runtime을 생성합니다.
 
 ```bash
 cd ~/agentcore/src
@@ -255,26 +273,27 @@ touch deploy.py
 
 ```python
 """
-AgentCore Runtime 배포 스크립트
-- IAM Role 생성, zip 파일을 S3에 업로드하고 Runtime을 생성합니다
+AgentCore Runtime 배포 스크립트 (Container 방식)
+- IAM Role 생성, Docker 이미지를 ECR에 push하고 Runtime을 생성합니다
 """
 import boto3
 import json
 import time
+import subprocess
 
 # === 설정 ===
 REGION = "us-west-2"
 AGENT_NAME = "healthcare_consultation_agent"
+ECR_REPO_NAME = "healthcare-consultation-agent"
+IMAGE_TAG = "latest"
 
 # AWS 계정 ID 자동 획득
 sts = boto3.client("sts")
 ACCOUNT_ID = sts.get_caller_identity()["Account"]
 
-# S3 버킷 이름 (AgentCore 규칙: bedrock-agentcore-code-{계정ID}-{리전})
-BUCKET_NAME = f"bedrock-agentcore-code-{ACCOUNT_ID}-{REGION}"
-S3_KEY = f"{AGENT_NAME}/deployment_package.zip"
 ROLE_NAME = f"AmazonBedrockAgentCoreSDKRuntime-{REGION}"
 ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/{ROLE_NAME}"
+ECR_URI = f"{ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com/{ECR_REPO_NAME}:{IMAGE_TAG}"
 
 # === 1단계: IAM Role 생성 (없는 경우) ===
 iam = boto3.client("iam")
@@ -295,41 +314,38 @@ try:
         Description="AgentCore Runtime execution role"
     )
     print(f"✓ IAM Role 생성: {ROLE_NAME}")
-    # Role 전파 대기
     print("→ IAM Role 전파 대기 (10초)...")
     time.sleep(10)
 except iam.exceptions.EntityAlreadyExistsException:
     print(f"✓ IAM Role 이미 존재: {ROLE_NAME}")
 
-# AWS 관리형 정책 부여 (Bedrock AgentCore + CloudWatch Logs 권한)
+# AWS 관리형 정책 부여
 iam.attach_role_policy(
     RoleName=ROLE_NAME,
     PolicyArn="arn:aws:iam::aws:policy/AdministratorAccess"
 )
 print(f"✓ 관리형 정책 부여 완료")
 
-# === 2단계: S3 버킷 생성 (없는 경우) ===
-s3 = boto3.client("s3", region_name=REGION)
+# === 2단계: ECR 리포지토리 생성 (없는 경우) ===
+ecr = boto3.client("ecr", region_name=REGION)
 try:
-    s3.head_bucket(Bucket=BUCKET_NAME)
-    print(f"✓ S3 버킷 존재: {BUCKET_NAME}")
-except Exception:
-    print(f"→ S3 버킷 생성: {BUCKET_NAME}")
-    s3.create_bucket(
-        Bucket=BUCKET_NAME,
-        CreateBucketConfiguration={"LocationConstraint": REGION}
-    )
-    print(f"✓ S3 버킷 생성 완료")
+    ecr.describe_repositories(repositoryNames=[ECR_REPO_NAME])
+    print(f"✓ ECR 리포지토리 존재: {ECR_REPO_NAME}")
+except ecr.exceptions.RepositoryNotFoundException:
+    ecr.create_repository(repositoryName=ECR_REPO_NAME)
+    print(f"✓ ECR 리포지토리 생성: {ECR_REPO_NAME}")
 
-# === 3단계: zip 파일 업로드 ===
-print(f"→ 업로드 중: deployment_package.zip → s3://{BUCKET_NAME}/{S3_KEY}")
-s3.upload_file(
-    "deployment_package.zip",
-    BUCKET_NAME,
-    S3_KEY,
-    ExtraArgs={"ExpectedBucketOwner": ACCOUNT_ID}
-)
-print(f"✓ 업로드 완료")
+# === 3단계: Docker 이미지 태그 + ECR 푸시 ===
+print(f"→ ECR 로그인...")
+login_cmd = f"aws ecr get-login-password --region {REGION} | docker login --username AWS --password-stdin {ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com"
+subprocess.run(login_cmd, shell=True, check=True)
+
+print(f"→ 이미지 태그: healthcare-agent:latest → {ECR_URI}")
+subprocess.run(f"docker tag healthcare-agent:latest {ECR_URI}", shell=True, check=True)
+
+print(f"→ ECR 푸시 중...")
+subprocess.run(f"docker push {ECR_URI}", shell=True, check=True)
+print(f"✓ ECR 푸시 완료")
 
 # === 4단계: AgentCore Runtime 생성 ===
 agentcore = boto3.client("bedrock-agentcore-control", region_name=REGION)
@@ -338,15 +354,8 @@ try:
     response = agentcore.create_agent_runtime(
         agentRuntimeName=AGENT_NAME,
         agentRuntimeArtifact={
-            "codeConfiguration": {
-                "code": {
-                    "s3": {
-                        "bucket": BUCKET_NAME,
-                        "prefix": S3_KEY
-                    }
-                },
-                "runtime": "PYTHON_3_12",
-                "entryPoint": ["main.py"]
+            "containerConfiguration": {
+                "containerUri": ECR_URI
             }
         },
         networkConfiguration={"networkMode": "PUBLIC"},
@@ -360,17 +369,29 @@ try:
     print(f"  ARN: {response['agentRuntimeArn']}")
     print(f"  Status: {response['status']}")
 except agentcore.exceptions.ConflictException:
-    response = agentcore.update_agent_runtime(
-        agentRuntimeName=AGENT_NAME,
-        agentRuntimeArtifact={
-            "codeConfiguration": {
-                "code": {
-                    "s3": {
-                        "bucket": BUCKET_NAME,
-                        "prefix": S3_KEY
-                    }
-                },
-                "runtime": "PYTHON_3_12",
+    print("⚠️ 동일 이름의 Runtime이 이미 존재합니다. 삭제 후 재생성하세요.")
+```
+
+배포 실행:
+
+```bash
+cd ~/agentcore/src
+uv run python deploy.py
+```
+
+> **참고**: Runtime 생성 후 상태가 `READY`가 될 때까지 3~5분 소요될 수 있습니다.
+
+**상태 확인:**
+
+```bash
+uv run python -c "
+import boto3, json
+client = boto3.client('bedrock-agentcore-control', region_name='us-west-2')
+response = client.list_agent_runtimes()
+for rt in response.get('agentRuntimes', []):
+    print(f\"Name: {rt['agentRuntimeName']} | Status: {rt['status']} | ID: {rt['agentRuntimeId']}\")
+"
+```
                 "entryPoint": ["main.py"]
             }
         },
@@ -470,15 +491,14 @@ uv run python invoke_agent.py
 
 | 오류 | 원인 | 해결 |
 |------|------|------|
-| `AccessDeniedException` | IAM Role 권한 누락 | Runtime Role에 `bedrock:InvokeModel` 권한 확인 |
+| `AccessDeniedException` | IAM Role 권한 누락 | Runtime Role에 `BedrockAgentCoreFullAccess` + `CloudWatchLogsFullAccess` 확인 |
 | `ModelNotAccessibleException` | Bedrock 모델 액세스 미활성화 | Bedrock 콘솔에서 Claude Sonnet 활성화 확인 |
 | `ResourceNotFoundException` | 에이전트 이름 오타 | `list_agent_runtimes` API로 정확한 이름 확인 |
-| `ConflictException` | 동일 이름의 Runtime 이미 존재 | `deploy.py`가 자동으로 update로 전환됨 |
-| `ValidationException` | zip 파일 구조 오류 | `main.py`가 zip 루트에 있는지 확인: `unzip -l deployment_package.zip \| grep main.py` |
-| zip 용량 250MB 초과 | 의존성이 너무 큼 | 불필요한 패키지 제거 또는 Container 방식 사용 |
-| `Runtime initialization time exceeded` | 의존성 로딩 시간 초과 | zip에 의존성이 포함되었는지 확인 |
-| `NoSuchBucket` | S3 버킷이 없음 | `deploy.py`가 자동 생성하므로 재실행 |
-| Role not found | IAM Role 미생성 | 강사에게 문의 — `AmazonBedrockAgentCoreSDKRuntime-us-west-2` Role 필요 |
+| `ConflictException` | 동일 이름의 Runtime 이미 존재 | 기존 Runtime 삭제 후 재생성 |
+| `docker build` 실패 | Docker 미설치 또는 권한 | `docker --version` 확인, 필요 시 `sudo` 사용 |
+| ECR push 실패 | ECR 로그인 만료 | `aws ecr get-login-password` 재실행 |
+| `Runtime initialization time exceeded` | 컨테이너 시작 시간 초과 | `main.py`에서 불필요한 import 제거, 이미지 크기 최소화 |
+| Role not found | IAM Role 미생성 | `deploy.py` 재실행 또는 강사에게 문의 |
 
 ---
 
