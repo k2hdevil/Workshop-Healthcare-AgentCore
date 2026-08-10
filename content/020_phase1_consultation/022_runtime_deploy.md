@@ -196,7 +196,7 @@ touch Dockerfile
 ```dockerfile
 FROM --platform=linux/arm64 python:3.12-slim
 
-WORKDIR /opt/app
+WORKDIR /app
 
 # 의존성 설치
 COPY requirements.txt .
