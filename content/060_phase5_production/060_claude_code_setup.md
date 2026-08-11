@@ -18,9 +18,6 @@ Day 3에서는 Claude Code on Bedrock를 사용하여 풀스택 웹 앱을 구�
 >
 > - 섹션 2.1: `export AWS_REGION="us-west-2"`
 > - 섹션 3.1: settings.json의 `"AWS_REGION": "us-west-2"`
-> - 섹션 6.8: terraform.tfvars의 `aws_region = "us-west-2"`, `availability_zones = ["us-west-2a", "us-west-2b"]`
-> - 섹션 7.2: ECR 명령어의 `--region us-west-2` 및 ECR URI의 `.ecr.us-west-2.amazonaws.com`
-> - 섹션 7.7: app terraform.tfvars의 `aws_region = "us-west-2"`
 >
 > 모델 ID(`global.anthropic.claude-*`)는 크로스 리전 추론을 사용하므로 변경 불필요합니다.
 
@@ -31,11 +28,6 @@ Day 3에서는 Claude Code on Bedrock를 사용하여 풀스택 웹 앱을 구�
 1. [Claude Code 설치](#1-claude-code-설치)
 2. [AWS 인증 구성](#2-aws-인증-구성)
 3. [Bedrock LLM 사용 설정](#3-bedrock-llm-사용-설정)
-4. [SKILL.md 생성 — AWS + Terraform + Container](#4-skillmd-생성--aws--terraform--container)
-5. [MCP 서버 연결 구성](#5-mcp-서버-연결-구성)
-6. [인프라 Terraform 템플릿 생성 및 배포](#6-인프라-terraform-템플릿-생성-및-배포) — VPC, ECS Cluster
-7. [Container 기반 애플리케이션 배포를 위한 Terraform 템플릿 생성 및 배포](#7-container-기반-애플리케이션-배포를-위한-terraform-템플릿-생성-및-배포) — Cats & Dogs 멀티 서비스
-8. [비용 최적화 및 아키텍처 개선](#8-비용-최적화-및-아키텍처-개선)
 
 ---
 
