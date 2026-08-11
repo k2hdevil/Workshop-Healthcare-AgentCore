@@ -102,85 +102,7 @@ Claude Code on Bedrock를 활용하여 Day 1-2에서 학습한 모든 요소를 
 
 ---
 
-## Claude Code on Bedrock 활용 가이드
-
-### Claude Code란?
-
-Claude Code는 터미널에서 동작하는 Agentic 코딩 에이전트입니다. 자연어로 지시하면 코드 작성, 파일 생성, 명령 실행을 자동으로 수행합니다.
-
-### Day 3에서 Claude Code를 사용하는 이유
-
-Day 1-2에서는 **각 컴포넌트를 이해하며 직접 코딩**했습니다.
-Day 3에서는 이미 이해한 개념을 **빠르게 통합**하는 데 집중합니다.
-
-- 2.5시간 안에 8개 단계를 완성해야 하므로, 보일러플레이트 코드는 Claude Code가 생성
-- 학습자는 **아키텍처 설계 + 지시 + 검증**에 집중
-- 실무에서 AI 코딩 에이전트를 활용하는 경험 자체가 학습
-
-### Claude Code 환경 설정
-
-```bash
-# Claude Code on Bedrock 설정 (Workshop Studio 환경)
-export CLAUDE_CODE_USE_BEDROCK=1
-export AWS_REGION=us-west-2
-
-# Claude Code 실행
-claude
-```
-
-### 효과적인 Claude Code 활용 팁
-
-| 팁 | 설명 | 예시 |
-|----|------|------|
-| **단계별 지시** | 한 번에 하나의 작업만 요청 | "먼저 triage_agent.py를 작성해줘" |
-| **컨텍스트 제공** | 기존 코드/파일을 참조시키기 | "consultation_agent.py를 참고해서 triage_agent를 만들어줘" |
-| **제약 조건 명시** | 사용할 라이브러리/패턴 지정 | "Strands SDK의 @tool 데코레이터를 사용해줘" |
-| **검증 요청** | 코드 작성 후 테스트 요청 | "이 에이전트를 로컬에서 테스트해줘" |
-| **단, 맹신하지 않기** | 생성된 코드를 반드시 검토 | Day 1-2 학습 내용으로 올바른지 판단 |
-
-### Claude Code 활용 워크플로우 (권장)
-
-```
-[설계] 내가 아키텍처와 요구사항을 정의
-   ↓
-[지시] Claude Code에게 구현 지시
-   ↓
-[검증] Day 1-2에서 배운 지식으로 코드 리뷰
-   ↓
-[수정] 필요 시 추가 지시로 수정
-   ↓
-[테스트] 실행하여 동작 확인
-```
-
-> **핵심**: Claude Code는 "타이핑을 대신하는 도구"입니다.
-> 무엇을 만들지, 어떤 구조로 만들지는 **여러분이 설계**합니다.
-> Day 1-2에서 학습한 내용이 있어야 올바른 지시를 내릴 수 있습니다.
-
----
-
-## 실습 시작
-
-### Step 1: Claude Code 환경 설정 (09:10-09:30)
-
-> **사전 설정**: [Claude Code on Bedrock 인증 구성](./060_claude_code_setup.md)을 먼저 완료하세요.
-
-```bash
-# Claude Code 실행 (인증 설정 완료 후)
-claude
-```
-
-Claude Code가 실행되면 아래 프롬프트로 프로젝트를 초기화하세요:
-
-```
-프로젝트를 초기화해줘.
-- Python 3.12, uv 패키지 매니저 사용
-- 의존성: strands-agents, strands-agents-builder, boto3, streamlit
-- 폴더 구조: src/agents/, src/tools/, src/app.py
-```
-
----
-
-### Step 2: AgentCore Runtime 배포 — 4개 에이전트 (09:30-10:00)
+### Step 1: AgentCore Runtime 배포 — 4개 에이전트 (09:30-10:00)
 
 Day 1에서 학습한 Container 배포 방식으로 4개 에이전트를 배포합니다.
 
@@ -208,7 +130,7 @@ Day 1-2에서 만든 에이전트를 참고하여, 아래 4개 에이전트를 �
 
 ---
 
-### Step 3: 에이전트 상호작용 구현 (10:00-10:20)
+### Step 2: 에이전트 상호작용 구현 (10:00-10:20)
 
 Supervisor가 3개 전문 에이전트를 순차 호출하여 최종 보고서를 생성합니다.
 
@@ -227,7 +149,7 @@ supervisor_agent가 아래 순서로 전문 에이전트를 호출하도록 구�
 
 ---
 
-### Step 4: Guardrail 설정 (10:20-10:35)
+### Step 3: Guardrail 설정 (10:20-10:35)
 
 Day 2 Phase 4-A에서 학습한 Guardrail을 Supervisor Agent에 적용합니다.
 
@@ -252,7 +174,7 @@ supervisor_agent의 BedrockModel에 guardrail을 설정해줘.
 
 ---
 
-### Step 5: 프롬프트 캐시 적용 (10:35-10:50)
+### Step 4: 프롬프트 캐시 적용 (10:35-10:50)
 
 Day 2 Phase 3-C에서 학습한 프롬프트 캐시를 3개 전문 에이전트에 적용합니다.
 
@@ -277,7 +199,7 @@ import 경로: from strands.models.bedrock import CacheConfig, CacheToolsConfig
 
 ---
 
-### Step 6: S3 데이터 연동 (10:50-11:10)
+### Step 5: S3 데이터 연동 (10:50-11:10)
 
 건강검진 데이터를 S3에 업로드하면 에이전트가 조회할 수 있도록 도구를 구현합니다.
 
@@ -303,7 +225,7 @@ def upload_patient_data(patient_id: str, data: dict) -> str:
 
 ---
 
-### Step 7: 공유 메모리 설정 (11:10-11:25)
+### Step 6: 공유 메모리 설정 (11:10-11:25)
 
 4개 에이전트가 동일한 세션 컨텍스트를 공유하도록 AgentCore Memory를 설정합니다.
 
@@ -327,7 +249,7 @@ response = triage_agent(patient_data, session_id=session_id)
 
 ---
 
-### Step 8: markdown2pdf MCP 서버 연결 (11:25-11:40)
+### Step 7: markdown2pdf MCP 서버 연결 (11:25-11:40)
 
 외부 MCP 서버를 Supervisor Agent에 연결하여 마크다운 보고서를 PDF로 변환합니다.
 
@@ -361,7 +283,7 @@ Supervisor의 시스템 프롬프트에 추가:
 
 ---
 
-### Step 9: Streamlit 프론트엔드 구현 및 배포 (11:40-12:00)
+### Step 8: Streamlit 프론트엔드 구현 및 배포 (11:40-12:00)
 
 **Claude Code에게 지시할 내용:**
 
