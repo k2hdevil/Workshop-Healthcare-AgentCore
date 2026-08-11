@@ -7,4 +7,6 @@
 !patient-data/
 !patient-data/**
 !README.md
+!index.html
+!curriculum-overview.md
 !.gitignore
