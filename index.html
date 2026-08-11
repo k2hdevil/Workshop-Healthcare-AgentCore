@@ -68,16 +68,16 @@
 <pre>
 Day 1                    Day 2                         Day 3 (반일)
 ━━━━━━━━━━━━━━━━━━━━    ━━━━━━━━━━━━━━━━━━━━━━━━━    ━━━━━━━━━━━━━━━━━
-[싱글 에이전트 구축]      [멀티 에이전트 + 보안]          [프로덕션 + 발표]
+[싱글 에이전트 구축]      [멀티 에이전트 + 보안]          [풀스택 웹 앱]
 
-Phase 1: 에이전트 구축    Phase 3: 멀티 에이전트          Phase 5: 배포
- └ 상담 에이전트            └ Triage/Analysis/Rec.        └ AWS 배포
- └ Runtime 배포             └ Supervisor Agent            └ 체크리스트
-                            └ 컨텍스트 엔지니어링
-Phase 2: 도구 + 운영       └ 프롬프트 캐시             팀별 발표 + 수료
+Phase 1: 에이전트 구축    Phase 3: 멀티 에이전트          Phase 5: 풀스택 웹 앱
+ └ 상담 에이전트            └ Triage/Analysis/Rec.        └ Claude Code
+ └ Runtime 배포             └ Supervisor Agent            └ AgentCore 배포
+                            └ 컨텍스트 엔지니어링          └ MCP PDF 서버
+Phase 2: 도구 + 운영       └ 프롬프트 캐시               └ Streamlit 배포
  └ 혈액검사 도구
- └ Memory (STM/LTM)      Phase 4: 보안 + 평가
- └ Observability            └ Policy + Guardrails
+ └ Memory (STM/LTM)      Phase 4: 보안 + 평가         Padlet 투표 + 시상
+ └ Observability            └ Policy + Guardrails        + 수료
                             └ Evaluations
                             └ 침투 테스트
 </pre>
@@ -139,19 +139,27 @@ Phase 2: 도구 + 운영       └ 프롬프트 캐시             팀별 발표
 
 <!-- Day 3 -->
 <div class="day-header">
-  <h3>Day 3 (0.5일): 프로덕션 배포 + 발표</h3>
-  <p>Day 1-2에서 구축한 전체 시스템을 AWS 프로덕션 환경에 배포하고, Agentic AI 애플리케이션 배포 체크리스트로 운영 준비를 완료합니다. 마지막으로 팀별 발표를 통해 아키텍처, 보안 대응, 실무 적용 고려사항을 공유하고 피드백을 받습니다.</p>
+  <h3>Day 3 (0.5일): 풀스택 의료 AI 웹 애플리케이션</h3>
+  <p>Claude Code on Bedrock를 활용하여, Day 1-2에서 학습한 모든 요소를 통합한 프로덕션급 풀스택 웹 애플리케이션을 구축합니다. AgentCore Runtime에 4개 에이전트를 배포하고, S3 데이터 연동, Guardrail, 프롬프트 캐시, 공유 메모리, MCP PDF 서버, Streamlit 프론트엔드까지 완성합니다.</p>
 </div>
 
 <table>
   <tr><th>시간</th><th>내용</th><th>유형</th></tr>
-  <tr><td>09:00-09:10</td><td>Day 1-2 리캡 + 체크포인트 코드 배포</td><td><span class="badge-review">리뷰</span></td></tr>
-  <tr><td>09:10-09:20</td><td>Agentic AI 프로덕션 배포 체크리스트 소개</td><td><span class="badge-theory">이론</span></td></tr>
-  <tr><td>09:20-10:40</td><td><strong>Phase 5</strong>: AWS 배포 + 프로덕션 체크리스트 완료</td><td><span class="badge-lab">실습</span></td></tr>
-  <tr><td>10:50-12:00</td><td>팀별 산출물 발표 (10분 발표 + 5분 Q&amp;A)</td><td><span class="badge-review">발표</span></td></tr>
-  <tr><td>12:00-12:30</td><td>실무 적용 주의사항 + Next Steps + 수료</td><td><span class="badge-theory">클로징</span></td></tr>
+  <tr><td>09:00-09:10</td><td>Day 1-2 리캡 + Day 3 목표 소개</td><td><span class="badge-review">리뷰</span></td></tr>
+  <tr><td>09:10-09:30</td><td>Claude Code on Bedrock 환경 설정</td><td><span class="badge-lab">실습</span></td></tr>
+  <tr><td>09:30-12:00</td><td><strong>Phase 5</strong>: 풀스택 의료 AI 웹 앱 구축</td><td><span class="badge-lab">실습</span></td></tr>
+  <tr><td></td><td>① AgentCore Runtime 배포 (Supervisor + 3 전문 에이전트)</td><td></td></tr>
+  <tr><td></td><td>② 4개 에이전트 상호작용 구현 (건강검진 보고서 생성)</td><td></td></tr>
+  <tr><td></td><td>③ Supervisor에 Guardrail 설정</td><td></td></tr>
+  <tr><td></td><td>④ 3개 전문 에이전트에 프롬프트 캐시 적용</td><td></td></tr>
+  <tr><td></td><td>⑤ S3 건강검진 데이터 업로드 → 분석 파이프라인</td><td></td></tr>
+  <tr><td></td><td>⑥ 4개 에이전트 공유 메모리 설정</td><td></td></tr>
+  <tr><td></td><td>⑦ markdown2pdf MCP 서버 연결 (PDF 보고서 생성)</td><td></td></tr>
+  <tr><td></td><td>⑧ Streamlit 프론트엔드 배포 (AWS)</td><td></td></tr>
+  <tr><td>12:00-12:20</td><td>결과물 Padlet 업로드 + 상호 투표</td><td><span class="badge-review">활동</span></td></tr>
+  <tr><td>12:20-12:40</td><td>시상 (좋아요 순위) + 수료</td><td><span class="badge-theory">클로징</span></td></tr>
 </table>
-<div class="output-box"><strong>Day 3 산출물</strong>: 프로덕션 Ready 시스템 + 최종 발표 + 수료</div>
+<div class="output-box"><strong>Day 3 산출물</strong>: 프로덕션 Ready 풀스택 웹 애플리케이션 + PDF 보고서</div>
 
 <hr class="section-divider">
 
@@ -223,7 +231,7 @@ Layer 4: 감사 로그 (Audit Trail)
   <tr><td>중간 체크포인트</td><td>Day별 git tag로 뒤처진 참가자 구제</td></tr>
   <tr><td>Challenge Task</td><td>빠른 학습자를 위한 확장 과제</td></tr>
   <tr><td>보안 레드팀</td><td>공격자 관점 침투 테스트 (8개 시나리오)</td></tr>
-  <tr><td>팀별 발표</td><td>Day 3 최종 산출물 발표 + 피드백</td></tr>
+  <tr><td>Padlet 투표 + 시상</td><td>Day 3 결과물 상호 평가 + 좋아요 순위 시상</td></tr>
 </table>
 
 <div class="footer">
