@@ -298,7 +298,7 @@ response = bedrock.create_guardrail(
             {"type": "________"}  # TODO ⑧: 비속어를 자동 필터링하는 관리형 단어 목록 유형
         ]
     },
-    
+)
     
 guardrail_id = response["guardrailId"]
 print(f"✓ Guardrail 생성 완료!")
