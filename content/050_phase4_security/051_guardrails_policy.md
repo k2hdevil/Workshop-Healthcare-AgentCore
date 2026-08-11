@@ -297,7 +297,12 @@ response = bedrock.create_guardrail(
         "managedWordListsConfig": [
             {"type": "________"}  # TODO ⑧: 비속어를 자동 필터링하는 관리형 단어 목록 유형
         ]
-    },f"  ID: {guardrail_id}")
+    },
+    
+    
+guardrail_id = response["guardrailId"]
+print(f"✓ Guardrail 생성 완료!")
+print(f"  ID: {guardrail_id}")
 print(f"  ARN: {response['guardrailArn']}")
 
 # Guardrail 버전 생성 (활성화)
