@@ -332,10 +332,8 @@ consultation_agent = Agent(
     model=BedrockModel(
         model_id="global.anthropic.claude-sonnet-4-5-20250929-v1:0",
         region_name="us-west-2",
-        guardrail_config={
-            "guardrailIdentifier": "________",  # TODO ④: 위에서 생성한 Guardrail ID
-            "guardrailVersion": "1"
-        }
+        guardrail_id="________",       # TODO ④: 위에서 생성한 Guardrail ID
+        guardrail_version="1"
     ),
     tools=[...],
     system_prompt=MEDICAL_SYSTEM_PROMPT

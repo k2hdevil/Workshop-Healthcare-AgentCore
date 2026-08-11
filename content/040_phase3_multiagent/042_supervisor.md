@@ -106,7 +106,7 @@ touch supervisor_agent.py
 
 `supervisor_agent.py`를 열고 아래 코드를 작성하세요:
 
-```python
+````python
 """
 Supervisor Agent — 종합 건강검진 분석 코디네이터
 - 3개 전문 에이전트를 Agent-as-Tool 패턴으로 조율
@@ -301,7 +301,7 @@ if __name__ == "__main__":
         print(f"{'='*60}")
         print(response.message['content'][0]['text'])
         print(f"\n[소요 시간: {elapsed:.1f}초]")
-```
+````
 
 ---
 
@@ -403,7 +403,7 @@ def analysis_specialist(analysis_request: str) -> str:
 
 ---
 
-### Step 5: PDF 보고서 생성
+### Step 5: 마크다운 보고서 생성
 
 종합 보고서를 마크다운 파일로 저장합니다.
 
