@@ -224,7 +224,19 @@ AgentCore Runtime에 배포된 에이전트는 ADOT(AWS Distro for OpenTelemetry
 {"prompt": "가슴이 아프고 숨이 차요"}
 ```
 
-각 호출 후 CloudWatch 콘솔에서 Transaction Search → Spans를 확인하면, 에이전트가 어떤 도구를 호출했는지, 각 Span의 소요 시간을 추적할 수 있습니다.
+각 호출 후 AWS 콘솔에서 에이전트의 Observability 데이터를 확인합니다:
+
+```
+1. AWS 콘솔 → Amazon Bedrock → AgentCore
+2. 좌측 메뉴: Runtimes → 실행 중인 에이전트 선택
+3. Observability 탭의 Dashboard 클릭
+4. Session, Trace, Span을 관찰하세요:
+   - Session: 각 invoke 호출이 하나의 세션으로 기록됨
+   - Trace: 세션 내의 요청-응답 사이클
+   - Span: LLM 호출, 도구 호출 등 개별 작업 단위와 소요 시간
+```
+
+> 도구 호출 순서, 각 Span의 지연 시간, 토큰 사용량을 직접 확인할 수 있습니다.
 시간을 내셔서 Session, Trace(Turn), Span을 하나씩 천천히 보세요.
 ---
 
