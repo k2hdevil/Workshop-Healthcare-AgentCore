@@ -23,41 +23,56 @@
 
 ---
 
-## 학습 목표
-
-본 워크샵을 수료하면 다음을 할 수 있습니다:
-
-1. Strands Agents SDK로 의료 상담 에이전트를 구축하고 AgentCore Runtime에 배포
-2. Agent-as-Tool 패턴으로 멀티 에이전트 협업 시스템 설계 및 구현
-3. AgentCore Memory, Observability, Policy, Evaluations를 활용한 프로덕션 운영
-4. Bedrock Guardrails로 PHI 필터링 및 Cedar 정책으로 접근 제어 구현
-5. 보안 침투 테스트 및 LLM-as-Judge 평가 파이프라인 구축
-6. 대한민국 의료법/개인정보보호법을 고려한 AI 시스템 설계
-
----
-
 ## 커리큘럼 구성
 
 ```
 Day 1                    Day 2                         Day 3 (반일)
 ━━━━━━━━━━━━━━━━━━━━    ━━━━━━━━━━━━━━━━━━━━━━━━━    ━━━━━━━━━━━━━━━━━
-[싱글 에이전트 구축]      [멀티 에이전트 + 보안]          [프로덕션 + 발표]
+[싱글 에이전트 구축]      [멀티 에이전트 + 보안]          [풀스택 웹 앱]
 
-Phase 1: 에이전트 구축    Phase 3: 멀티 에이전트          Phase 5: 배포
- └ 상담 에이전트            └ Triage/Analysis/Rec.        └ VPC 배포
- └ Runtime 배포             └ Supervisor Agent            └ 부하 테스트
-                                                          └ 체크리스트
-Phase 2: 도구 + 운영      Phase 4: 보안 + 평가
- └ 혈액검사 도구            └ Policy + Guardrails       팀별 발표 + 수료
- └ Memory (STM/LTM)        └ Evaluations
- └ Observability            └ 침투 테스트
+Phase 1: 에이전트 구축    Phase 3: 멀티 에이전트          Phase 5: 풀스택 웹 앱
+ └ 상담 에이전트            └ Triage/Analysis/Rec.        └ Claude Code
+ └ Runtime 배포             └ Supervisor Agent            └ AgentCore 배포
+                            └ 컨텍스트 엔지니어링          └ MCP PDF 서버
+Phase 2: 도구 + 운영       └ 프롬프트 캐시               └ Streamlit 배포
+ └ 혈액검사 도구
+ └ Memory (STM/LTM)      Phase 4: 보안 + 평가         Padlet 투표 + 시상
+ └ Observability            └ Policy + Guardrails        + 수료
+                            └ Evaluations
+                            └ 침투 테스트
+```
+
+---
+
+## 콘텐츠 구조
+
+```
+content/
+├── 010_opening/
+│   └── 011_environment_setting.md        # 환경 설정 (VS Code, AWS)
+├── 020_phase1_consultation/
+│   ├── 021_agent_build.md                # Phase 1-A: 상담 에이전트 구축
+│   └── 022_runtime_deploy.md             # Phase 1-B: Runtime 배포
+├── 030_phase2_tools/
+│   ├── 031_lab_tools.md                  # Phase 2-A: 혈액 검사 도구
+│   ├── 032_memory.md                     # Phase 2-B: 메모리 (STM/LTM)
+│   └── 033_observability.md              # Phase 2-C: Observability
+├── 040_phase3_multiagent/
+│   ├── 041_specialist_agents.md          # Phase 3-A: 전문 에이전트 3개
+│   ├── 042_supervisor.md                 # Phase 3-B: Supervisor Agent
+│   └── 043_context_engineering.md        # Phase 3-C: 컨텍스트 엔지니어링 + 캐시
+├── 050_phase4_security/
+│   ├── 051_guardrails_policy.md          # Phase 4-A: Guardrails + Cedar
+│   ├── 052_evaluations.md                # Phase 4-B: 평가 파이프라인
+│   └── 053_penetration_test.md           # Phase 4-C: 보안 침투 테스트
+└── 060_phase5_production/
+    ├── 060_claude_code_setup.md           # Claude Code on Bedrock 설정
+    └── 061_fullstack_app.md              # Phase 5: 풀스택 웹 앱
 ```
 
 ---
 
 ## Day 1: 싱글 에이전트 구축 및 도구 통합
-
-Strands Agents SDK로 의료 상담 에이전트를 처음부터 구축하고, AgentCore Runtime에 배포하여 API로 호출할 수 있는 상태까지 완성합니다. 이후 혈액 검사 도구, 대화 메모리, 모니터링을 차례로 통합하여 실제 사용 가능한 싱글 에이전트 시스템을 완성합니다.
 
 | 시간 | 내용 | 유형 |
 |------|------|------|
@@ -81,115 +96,51 @@ Strands Agents SDK로 의료 상담 에이전트를 처음부터 구축하고, A
 
 ## Day 2: 멀티 에이전트 시스템 + 보안 + 평가
 
-Day 1에서 만든 싱글 에이전트를 3개 전문 에이전트(Triage, Analysis, Recommendation)로 확장하고, Supervisor Agent가 이를 조율하여 종합 건강검진 AI 분석 보고서를 생성합니다. 오후에는 Cedar 정책과 Guardrails로 보안을 강화하고, 평가 파이프라인과 침투 테스트로 시스템의 품질과 견고성을 검증합니다.
-
 | 시간 | 내용 | 유형 |
 |------|------|------|
 | 09:00-09:10 | Day 1 리캡 + 체크포인트 코드 배포 | 리뷰 |
 | 09:10-09:30 | 멀티 에이전트 패턴 소개 (Agent-as-Tool) | 이론 |
-| 09:30-11:00 | **Phase 3-A**: 전문 에이전트 3개 구현 (스켈레톤 코드 제공) | 실습 |
-| 11:10-11:20 | Supervisor 오케스트레이션 패턴 | 이론 |
-| 11:20-12:00 | **Phase 3-B**: Supervisor Agent + 종합 보고서 생성 | 실습 |
+| 09:30-10:10 | **Phase 3-A**: 전문 에이전트 3개 구현 (스켈레톤 코드 제공) | 실습 |
+| 10:10-10:20 | Supervisor 오케스트레이션 패턴 | 이론 |
+| 10:20-11:00 | **Phase 3-B**: Supervisor Agent + 종합 보고서 생성 | 실습 |
+| 11:10-11:20 | 컨텍스트 엔지니어링 + 프롬프트 캐시 개념 | 이론 |
+| 11:20-12:00 | **Phase 3-C**: 컨텍스트 엔지니어링 + 프롬프트 캐시 적용 | 실습 |
 | 12:00-13:00 | **점심** | - |
 | 13:00-13:25 | AgentCore Policy + Bedrock Guardrails 개념 | 이론 |
-| 13:25-14:25 | **Phase 4-A**: PHI 필터링 + Cedar 정책 + VPC 배포 | 실습 |
+| 13:25-14:25 | **Phase 4-A**: PHI 필터링 + Cedar 정책 | 실습 |
 | 14:35-14:45 | AgentCore Evaluations 개념 (LLM-as-Judge) | 이론 |
 | 14:45-15:45 | **Phase 4-B**: 평가 파이프라인 구축 | 실습 |
 | 15:55-16:55 | **Phase 4-C**: 보안 침투 테스트 (8개 공격 시나리오) | 실습 |
 | 16:55-17:10 | Day 2 종합 정리 | 리뷰 |
 
-**Day 2 산출물**: 멀티 에이전트 시스템 + 보안 정책 + 평가 리포트 + 침투 테스트 결과
+**Day 2 산출물**: 멀티 에이전트 시스템 + 컨텍스트 엔지니어링/프롬프트 캐시 + 보안 정책 + 평가 리포트 + 침투 테스트 결과
 
 ---
 
-## Day 3 (0.5일): 프로덕션 배포 + 발표
+## Day 3 (0.5일): 풀스택 의료 AI 웹 애플리케이션
 
-Day 1-2에서 구축한 전체 시스템을 VPC 내 프로덕션 환경에 배포하고, 부하 테스트와 프로덕션 체크리스트로 운영 준비를 완료합니다. 마지막으로 팀별 발표를 통해 아키텍처, 보안 대응, 실무 적용 고려사항을 공유하고 피드백을 받습니다.
+Claude Code on Bedrock를 활용하여 Day 1-2에서 학습한 모든 요소를 통합한 프로덕션급 풀스택 웹 앱을 구축합니다.
 
 | 시간 | 내용 | 유형 |
 |------|------|------|
-| 09:00-09:10 | Day 1-2 리캡 + 체크포인트 코드 배포 | 리뷰 |
-| 09:10-09:20 | 프로덕션 체크리스트 소개 | 이론 |
-| 09:20-10:40 | **Phase 5**: VPC 배포 + 부하 테스트 + 체크리스트 완료 | 실습 |
-| 10:50-12:00 | 팀별 산출물 발표 (10분 발표 + 5분 Q&A) | 발표 |
-| 12:00-12:30 | 실무 적용 주의사항 + Next Steps + 수료 | 클로징 |
+| 09:00-09:10 | Day 1-2 리캡 + Day 3 목표 소개 | 리뷰 |
+| 09:10-09:30 | Claude Code on Bedrock 환경 설정 | 실습 |
+| 09:30-12:00 | **Phase 5**: 풀스택 의료 AI 웹 앱 구축 | 실습 |
+| | ① AgentCore Runtime 배포 (Supervisor + 3 전문 에이전트) | |
+| | ② 4개 에이전트 상호작용 구현 (건강검진 보고서 생성) | |
+| | ③ Supervisor에 Guardrail 설정 | |
+| | ④ 3개 전문 에이전트에 프롬프트 캐시 적용 | |
+| | ⑤ S3 건강검진 데이터 업로드 → 분석 파이프라인 | |
+| | ⑥ 4개 에이전트 공유 메모리 설정 | |
+| | ⑦ markdown2pdf MCP 서버 연결 (PDF 보고서 생성) | |
+| | ⑧ Streamlit 프론트엔드 배포 (AWS) | |
+| 12:00-12:20 | 결과물 Padlet 업로드 + 상호 투표 | 활동 |
+| 12:20-12:40 | 시상 (좋아요 순위) + 수료 | 클로징 |
 
-**Day 3 산출물**: 프로덕션 Ready 시스템 + 최종 발표
-
----
-
-## 사용 AWS 서비스
-
-| 서비스 | 용도 |
-|--------|------|
-| Amazon Bedrock (Claude Sonnet 4.5) | LLM 추론 |
-| Bedrock AgentCore Runtime | 에이전트 호스팅/배포 |
-| Bedrock AgentCore Memory | 대화 이력 관리 (STM + LTM) |
-| Bedrock AgentCore Observability | CloudWatch GenAI 모니터링 |
-| Bedrock AgentCore Policy | Cedar 기반 접근 제어 |
-| Bedrock AgentCore Evaluations | LLM-as-Judge 품질 평가 |
-| Bedrock Guardrails | PHI/PII 필터링, 토픽 차단 |
-| Amazon CloudWatch | 메트릭/로그/알람 |
-| Amazon S3 | 환자 데이터 + 산출물 |
-
----
-
-## 보안 계층 (4-Layer)
-
-```
-Layer 1: AgentCore Policy (Cedar 정책)
-  └ 입력 파라미터 검증 + 시간 기반 접근 제어
-
-Layer 2: AgentCore Runtime VPC 배포
-  └ "VPC and more" 마법사로 Private Subnet + NAT 생성
-
-Layer 3: Bedrock Guardrails
-  └ PHI 마스킹 + 진단/처방 차단 + 프롬프트 인젝션 방어
-
-Layer 4: 감사 로그 (Audit Trail)
-  └ 모든 데이터 접근 기록 + 개인정보보호법 증적
-```
-
----
-
-## 대한민국 의료 규정 준수
-
-| 규정 | 워크샵 내 적용 |
-|------|--------------|
-| 의료법 제27조 | AI 면책 조항 필수 포함 (의료행위 불가 명시) |
-| 의료법 제21조 | 감사 로그 5년 보존 설계 |
-| 개인정보보호법 (PIPA) | Guardrails PHI 자동 마스킹 |
-| 식약처 SaMD 가이드라인 | "참고 정보 제공"으로 한정 (의료기기 비해당) |
-
----
-
-## 전제 조건
-
-**필수 역량:**
-- Python 프로그래밍 (중급 이상)
-- AWS 기본 서비스 이해 (IAM, S3)
-- REST API / JSON 처리 경험
-- 생성형 AI 기본 개념
-
-**권장 사전 학습** (AWS Skill Builder):
-- Generative AI Fundamentals
-- Building Production-Ready AI Agents with Amazon Bedrock AgentCore
-
----
-
-## 교육 특징
-
-| 특징 | 설명 |
-|------|------|
-| 시나리오 기반 | 2.5일 전체가 하나의 환자 시나리오로 연결 |
-| 스켈레톤 코드 | Phase 3 멀티 에이전트는 빈칸 채우기 방식 제공 |
-| 중간 체크포인트 | Day별 git tag로 뒤처진 참가자 구제 |
-| Challenge Task | 빠른 학습자를 위한 확장 과제 |
-| 보안 레드팀 | 공격자 관점 침투 테스트 (8개 시나리오) |
-| 팀별 발표 | Day 3 최종 산출물 발표 + 피드백 |
+**Day 3 산출물**: 프로덕션 Ready 풀스택 웹 애플리케이션 + PDF 보고서
 
 ---
 
 ## 시작하기
 
-[Day 1 오프닝: 환경 설정 →](./010_opening/011_environment_setting.md)
+[Day 1 오프닝: 환경 설정 →](./content/010_opening/011_environment_setting.md)
