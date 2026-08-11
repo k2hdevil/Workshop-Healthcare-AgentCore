@@ -273,7 +273,7 @@ response = bedrock.create_guardrail(
     
     # 차단 시 응답 메시지
     blockedInputMessaging="죄송합니다. 해당 요청은 의료 안전 정책에 의해 처리할 수 없습니다.",
-    blockedOutputsMessaging="죄송합니다. 해당 내용은 의료 안전 정책에 의해 제공할 수 없습니다. 정확한 진단과 치료는 의료 전문가와 상담하세요."
+    blockedOutputsMessaging="죄송합니다. 해당 내용은 의료 안전 정책에 의해 제공할 수 없습니다. 정확한 진단과 치료는 의료 전문가와 상담하세요.",
 
     # 콘텐츠 필터 (Agentic AI 공통 + 프롬프트 인젝션 방어)
     contentPolicyConfig={
