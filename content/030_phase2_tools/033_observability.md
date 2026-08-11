@@ -398,10 +398,10 @@ python consultation_agent.py
 ### Step 5: CloudWatch Logs에서 감사 로그 확인
 
 ```bash
-aws logs filter-log-events \
-  --log-group-name /workshop/healthcare-agent/audit \
+aws logs tail /workshop/healthcare-agent/audit \
   --region us-west-2 \
-  --limit 5 | python3 -m json.tool
+  --since 1h \
+  --format short
 ```
 
 **기대 출력:**
