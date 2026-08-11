@@ -162,15 +162,10 @@ claude
 
 ### Step 1: Claude Code 환경 설정 (09:10-09:30)
 
+> **사전 설정**: [Claude Code on Bedrock 인증 구성](./060_claude_code_setup.md)을 먼저 완료하세요.
+
 ```bash
-# Claude Code on Bedrock 활성화
-export CLAUDE_CODE_USE_BEDROCK=1
-export AWS_REGION=us-west-2
-
-# 작업 디렉토리 생성
-mkdir -p ~/healthcare-app && cd ~/healthcare-app
-
-# Claude Code 시작
+# Claude Code 실행 (인증 설정 완료 후)
 claude
 ```
 
