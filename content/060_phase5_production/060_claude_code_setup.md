@@ -146,7 +146,7 @@ Terraform은 환경 변수에 설정된 AWS 자격 증명을 자동으로 인식
 이 워크샵에서는 워크샵 환경에서 제공하는 Amazon Bedrock 기반의 Claude 모델을 사용합니다.
 
 > [!IMPORTANT]
-> **Bedrock Claude 모델 접근을 위한 사전 작업 (자체 AWS 계정을 사용하는 경우에만)**
+> **Bedrock Claude 모델 접근을 위한 사전 작업 (개인 AWS 계정을 사용하는 경우에만)**
 >
 > AWS Workshop Studio를 통해 제공된 계정을 사용하는 경우, 모델 접근 권한이 이미 설정되어 있으므로 이 단계를 건너뛰세요.
 >
