@@ -41,7 +41,7 @@ Claude Code on Bedrock를 활용하여 Day 1-2에서 개발한 에이전트 및 
 │  │  ┌────────────────────────────────────────────────────┐     │      │
 │  │  │          Supervisor Agent                          │     │      │
 │  │  │  - Guardrail (PHI 필터링 + 진단/처방 차단)          │     │      │
-│  │  │  - AgentCore Gateway → MCP 서버 (Lambda)           │     │      │
+│  │  │  - AgentCore Gateway → mcp-pdf MCP 서버 (Lambda)   │     │      │
 │  │  │  - 오케스트레이션 + 최종 보고서 작성                 │     │      │
 │  │  └────────┬───────────────┬───────────────┬───────────┘     │      │
 │  │           │               │               │                  │      │
@@ -60,9 +60,9 @@ Claude Code on Bedrock를 활용하여 Day 1-2에서 개발한 에이전트 및 
 │  └──────────────────────────────────────────────────────────────┘      │
 │                                                                         │
 │  ┌──────────────────────────────────────────────┐                   │
-│  │ markdown2pdf MCP Server (AWS Lambda)         │                   │
+│  │ @mcp-z/mcp-pdf MCP Server (AWS Lambda)       │                   │
 │  │  - AgentCore Gateway를 통해 Supervisor와 연결 │                   │
-│  │  - 마크다운 → PDF 변환                        │                   │
+│  │  - 마크다운/레이아웃 → PDF 변환               │                   │
 │  └──────────────────────────────────────────────┘                   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -82,7 +82,7 @@ Claude Code on Bedrock를 활용하여 Day 1-2에서 개발한 에이전트 및 
      ↓
 ⑥ Supervisor가 Recommendation Agent 호출 → 건강 관리 권고
      ↓
-⑦ Supervisor가 AgentCore Gateway → Lambda MCP 서버로 PDF 생성
+⑦ Supervisor가 AgentCore Gateway → @mcp-z/mcp-pdf Lambda로 PDF 생성
      ↓
 ⑧ PDF를 S3에 저장 → Streamlit UI에서 다운로드 링크 제공
 ```
@@ -92,7 +92,7 @@ Claude Code on Bedrock를 활용하여 Day 1-2에서 개발한 에이전트 및 
 | Day 1-2에서 배운 것 | Day 3에서 적용하는 방법 |
 |---------------------|----------------------|
 | **Phase 1**: Strands Agent 구축 + Runtime 배포 | 4개 에이전트를 AgentCore Runtime에 Container 배포 |
-| **Phase 2-A**: @tool 도구 구현 | S3 조회 도구, Lambda MCP 서버(PDF 생성) 연결 |
+| **Phase 2-A**: @tool 도구 구현 | S3 조회 도구, @mcp-z/mcp-pdf MCP 서버(PDF 생성) 연결 |
 | **Phase 2-B**: AgentCore Memory | 4개 에이전트가 공유하는 세션 메모리 설정 |
 | **Phase 2-C**: Observability | CloudWatch에서 전체 파이프라인 추적 |
 | **Phase 3-A**: 전문 에이전트 구현 | Triage/Analysis/Recommendation 3개 에이전트 배포 |
@@ -266,9 +266,16 @@ response = triage_agent(patient_data, session_id=session_id)
 
 ---
 
-### Step 7: markdown2pdf MCP 서버 연결 (11:25-11:40)
+### Step 7: mcp-pdf MCP 서버 연결 (11:25-11:40)
 
-MCP 서버를 **Lambda 함수로 구현**하고, Supervisor 에이전트가 **AgentCore Gateway**를 통해 연계하는 방식으로 PDF 변환을 구현합니다.
+[mcp-z/mcp-pdf](https://github.com/mcp-z/mcp-pdf) MCP 서버를 **Lambda 함수로 구현**하고, Supervisor 에이전트가 **AgentCore Gateway**를 통해 연계하는 방식으로 PDF 변환을 구현합니다.
+
+**MCP 서버 정보:**
+- 패키지: `@mcp-z/mcp-pdf`
+- 실행: `npx -y @mcp-z/mcp-pdf`
+- 주요 도구: `pdf-document` (텍스트/레이아웃 → PDF 생성)
+- 특징: 이모지, 유니코드, 한글 완벽 지원 / 오프라인 동작 / OAuth 불필요
+- HTTP 전송 지원: `npx -y @mcp-z/mcp-pdf --port=9010` → `http://localhost:9010/mcp`
 
 **아키텍처:**
 
@@ -276,8 +283,8 @@ MCP 서버를 **Lambda 함수로 구현**하고, Supervisor 에이전트가 **Ag
 Supervisor Agent
      ↓ (도구 호출)
 AgentCore Gateway
-     ↓ (MCP 프로토콜)
-Lambda Function (markdown2pdf MCP Server)
+     ↓ (MCP 프로토콜 — HTTP transport)
+Lambda Function (@mcp-z/mcp-pdf)
      ↓
 PDF 생성 → S3 저장
 ```
@@ -285,23 +292,31 @@ PDF 생성 → S3 저장
 **Claude Code에게 지시할 내용:**
 
 ```
-markdown2pdf MCP 서버를 Lambda 함수로 구현해줘.
+@mcp-z/mcp-pdf MCP 서버를 Lambda 함수로 배포하고 Supervisor와 연결해줘.
 
-Lambda 함수 요구사항:
+MCP 서버 로컬 테스트 설정:
+{
+  "mcpServers": {
+    "pdf": {
+      "command": "npx",
+      "args": ["-y", "@mcp-z/mcp-pdf"]
+    }
+  }
+}
+
+Lambda 배포 요구사항:
 - Runtime: Node.js 20.x
-- 마크다운 문자열을 받아 PDF로 변환
+- @mcp-z/mcp-pdf를 Lambda에서 HTTP transport로 실행
+- pdf-document 도구로 건강검진 보고서를 PDF로 변환
 - 생성된 PDF를 S3에 저장하고 pre-signed URL 반환
-- 한글 폰트 지원 (Lambda Layer에 Noto Sans CJK 포함)
 
 AgentCore Gateway 연결:
-- Supervisor Agent가 Gateway를 통해 Lambda MCP 서버를 호출하도록 설정
+- Supervisor Agent가 Gateway를 통해 Lambda의 MCP HTTP 엔드포인트를 호출
 - Gateway에 MCP 서버 엔드포인트 등록
-
-참고: https://github.com/2b3pro/markdown2pdf-mcp 의 구현 로직을 Lambda에 맞게 변환
 ```
 
 **검증 포인트:**
-- [ ] Lambda 함수가 마크다운을 받아 PDF를 S3에 저장하는가?
+- [ ] Lambda 함수가 `pdf-document` 도구로 PDF를 S3에 저장하는가?
 - [ ] Supervisor가 AgentCore Gateway를 통해 Lambda MCP를 호출하는가?
 - [ ] 생성된 PDF에 한글이 정상 렌더링되는가?
 
@@ -350,7 +365,7 @@ streamlit run src/app.py --server.port 8501 --server.address 0.0.0.0
 | 4 | 프롬프트 캐시가 동작 | 두 번째 호출 시 cacheReadInputTokens > 0 |
 | 5 | S3 업로드 → 에이전트 분석 연동 | JSON 업로드 후 보고서 생성 |
 | 6 | 공유 메모리로 컨텍스트 전파 | Analysis가 Triage 결과를 참조 |
-| 7 | PDF 보고서 생성 | Lambda MCP → S3에 PDF 저장, pre-signed URL 동작 |
+| 7 | PDF 보고서 생성 | @mcp-z/mcp-pdf Lambda → S3에 PDF 저장, pre-signed URL 동작 |
 | 8 | Streamlit UI 접속 | 브라우저에서 http://<EC2-IP>:8501 접속 |
 
 ---
@@ -377,8 +392,8 @@ streamlit run src/app.py --server.port 8501 --server.address 0.0.0.0
 | 문제 | 원인 | 해결 |
 |------|------|------|
 | Claude Code가 Bedrock 연결 실패 | 환경 변수 미설정 | `CLAUDE_CODE_USE_BEDROCK=1` 확인 |
-| markdown2pdf Lambda 실패 | Lambda 타임아웃 또는 메모리 부족 | Lambda 메모리 512MB+, 타임아웃 30초 이상 설정 |
-| PDF 한글 깨짐 | 폰트 미포함 | Lambda Layer에 Noto Sans CJK 폰트 추가 |
+| @mcp-z/mcp-pdf Lambda 실패 | Lambda 타임아웃 또는 메모리 부족 | Lambda 메모리 512MB+, 타임아웃 30초 이상 설정 |
+| PDF 한글 깨짐 | 폰트 미포함 | @mcp-z/mcp-pdf는 내장 유니코드 지원, .fonts 디렉토리 확인 |
 | Streamlit 접속 불가 | Security Group 미설정 | EC2 SG에 8501 포트 인바운드 추가 |
 | Guardrail ValidationException | guardrail_id 오류 | `create_guardrail.py` 재실행 후 ID 확인 |
 | 프롬프트 캐시 미동작 | 시스템 프롬프트가 4,096 토큰 미만 | 프롬프트에 의학 지식/예시를 추가하여 길이 확보 |
