@@ -8,7 +8,7 @@ time: "150분"
 
 ## 학습 목표
 
-Claude Code on Bedrock를 활용하여 Day 1-2에서 학습한 모든 요소를 통합한 프로덕션급 풀스택 웹 애플리케이션을 구축합니다. 4개 에이전트를 AgentCore Runtime에 배포하고, Streamlit 프론트엔드까지 완성합니다.
+Claude Code on Bedrock를 활용하여 Day 1-2에서 개발한 에이전트 및 기능 구현 코드를 **AWS 기반 환경에 AI 웹 애플리케이션의 형태로 통합**합니다. 이 단계에서는 에이전트나 기능을 새로 구현하는 것이 아니라, 이미 완성된 코드를 프로덕션급 풀스택 아키텍처로 조립하는 데 집중합니다.
 
 ---
 
@@ -41,7 +41,7 @@ Claude Code on Bedrock를 활용하여 Day 1-2에서 학습한 모든 요소를 
 │  │  ┌────────────────────────────────────────────────────┐     │      │
 │  │  │          Supervisor Agent                          │     │      │
 │  │  │  - Guardrail (PHI 필터링 + 진단/처방 차단)          │     │      │
-│  │  │  - markdown2pdf MCP 서버 연결                       │     │      │
+│  │  │  - AgentCore Gateway → MCP 서버 (Lambda)           │     │      │
 │  │  │  - 오케스트레이션 + 최종 보고서 작성                 │     │      │
 │  │  └────────┬───────────────┬───────────────┬───────────┘     │      │
 │  │           │               │               │                  │      │
@@ -59,11 +59,11 @@ Claude Code on Bedrock를 활용하여 Day 1-2에서 학습한 모든 요소를 
 │  │  └────────────────────────────────────────────────────┘     │      │
 │  └──────────────────────────────────────────────────────────────┘      │
 │                                                                         │
-│  ┌──────────────────┐                                                  │
-│  │ markdown2pdf     │ ← MCP 서버 (외부)                                │
-│  │ MCP Server       │                                                  │
-│  │ (PDF 보고서 생성) │                                                  │
-│  └──────────────────┘                                                  │
+│  ┌──────────────────────────────────────────────┐                   │
+│  │ markdown2pdf MCP Server (AWS Lambda)         │                   │
+│  │  - AgentCore Gateway를 통해 Supervisor와 연결 │                   │
+│  │  - 마크다운 → PDF 변환                        │                   │
+│  └──────────────────────────────────────────────┘                   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -82,7 +82,7 @@ Claude Code on Bedrock를 활용하여 Day 1-2에서 학습한 모든 요소를 
      ↓
 ⑥ Supervisor가 Recommendation Agent 호출 → 건강 관리 권고
      ↓
-⑦ Supervisor가 markdown2pdf MCP 서버로 PDF 생성
+⑦ Supervisor가 AgentCore Gateway → Lambda MCP 서버로 PDF 생성
      ↓
 ⑧ PDF를 S3에 저장 → Streamlit UI에서 다운로드 링크 제공
 ```
@@ -92,7 +92,7 @@ Claude Code on Bedrock를 활용하여 Day 1-2에서 학습한 모든 요소를 
 | Day 1-2에서 배운 것 | Day 3에서 적용하는 방법 |
 |---------------------|----------------------|
 | **Phase 1**: Strands Agent 구축 + Runtime 배포 | 4개 에이전트를 AgentCore Runtime에 Container 배포 |
-| **Phase 2-A**: @tool 도구 구현 | S3 조회 도구, PDF 생성 MCP 도구 연결 |
+| **Phase 2-A**: @tool 도구 구현 | S3 조회 도구, Lambda MCP 서버(PDF 생성) 연결 |
 | **Phase 2-B**: AgentCore Memory | 4개 에이전트가 공유하는 세션 메모리 설정 |
 | **Phase 2-C**: Observability | CloudWatch에서 전체 파이프라인 추적 |
 | **Phase 3-A**: 전문 에이전트 구현 | Triage/Analysis/Recommendation 3개 에이전트 배포 |
@@ -102,25 +102,42 @@ Claude Code on Bedrock를 활용하여 Day 1-2에서 학습한 모든 요소를 
 
 ---
 
+## 실습 시작 전 안내
+
+> **중요: 이 단계의 핵심은 "통합"입니다.**
+>
+> Day 1-2에서 여러분은 이미 에이전트 구축, 도구 구현, 메모리 설정, Guardrail 적용, 프롬프트 캐시 등 모든 핵심 기능을 직접 개발했습니다.
+>
+> Day 3에서는 이 코드를 **새로 작성하는 것이 아니라**, AWS 기반 웹 애플리케이션 아키텍처로 **통합하고 배포**하는 것입니다.
+>
+> 아래 절차는 **참고 예시**입니다. 여러분의 기술 스택과 경험에 기반하여 구현 방법을 직접 설계하시고, **Claude Code on Bedrock를 활용하여 구현을 가속화**하세요.
+>
+> - 프론트엔드: Streamlit 외에 React, Next.js, Gradio 등 자유롭게 선택 가능
+> - 배포: EC2 외에 ECS, App Runner, Lambda 등 원하는 방식 사용 가능
+> - 아키텍처: 아래와 다른 구조도 환영합니다 — 핵심은 "동작하는 웹 앱"을 완성하는 것
+
+---
+
+## 실습 절차 (예시)
+
 ### Step 1: AgentCore Runtime 배포 — 4개 에이전트 (09:30-10:00)
 
-Day 1에서 학습한 Container 배포 방식으로 4개 에이전트를 배포합니다.
+Day 1-2에서 개발한 에이전트 코드를 Container 배포 방식으로 AgentCore Runtime에 배포합니다.
 
 **Claude Code에게 지시할 내용:**
 
 ```
-Day 1-2에서 만든 에이전트를 참고하여, 아래 4개 에이전트를 구현해줘.
+Day 1-2에서 만든 에이전트 코드(~/agentcore/src/)를 참고하여,
+4개 에이전트를 AgentCore Runtime에 Container 방식으로 배포해줘.
 
-1. triage_agent: 건강검진 결과를 분류하는 전문가 (A/B/C/D 등급)
-2. analysis_agent: 비정상 항목의 상관관계를 분석하는 전문가
-3. recommendation_agent: 식이/운동/추적검사를 권고하는 전문가
-4. supervisor_agent: 위 3개를 Agent-as-Tool로 조율하는 코디네이터
+배포할 에이전트:
+1. triage_agent (triage_agent.py)
+2. analysis_agent (analysis_agent.py)
+3. recommendation_agent (recommendation_agent.py)
+4. supervisor_agent (supervisor_agent.py)
 
-각 에이전트는:
-- Strands SDK의 Agent 클래스 사용
-- BedrockModel (global.anthropic.claude-sonnet-4-5-20250929-v1:0)
-- 한국어 시스템 프롬프트 포함
-- 의료 면책 조항 필수
+각 에이전트는 이미 구현되어 있으므로, 배포 스크립트(deploy.py)와
+Dockerfile을 작성하여 ECR push + Runtime 생성을 자동화해줘.
 ```
 
 **검증 포인트** (Day 1-2 학습 기반):
@@ -130,9 +147,9 @@ Day 1-2에서 만든 에이전트를 참고하여, 아래 4개 에이전트를 �
 
 ---
 
-### Step 2: 에이전트 상호작용 구현 (10:00-10:20)
+### Step 2: 에이전트 상호작용 통합 (10:00-10:20)
 
-Supervisor가 3개 전문 에이전트를 순차 호출하여 최종 보고서를 생성합니다.
+Day 2에서 구현한 Supervisor의 Agent-as-Tool 패턴을 Runtime 환경에서 동작하도록 통합합니다.
 
 **Claude Code에게 지시할 내용:**
 
@@ -251,35 +268,42 @@ response = triage_agent(patient_data, session_id=session_id)
 
 ### Step 7: markdown2pdf MCP 서버 연결 (11:25-11:40)
 
-외부 MCP 서버를 Supervisor Agent에 연결하여 마크다운 보고서를 PDF로 변환합니다.
+MCP 서버를 **Lambda 함수로 구현**하고, Supervisor 에이전트가 **AgentCore Gateway**를 통해 연계하는 방식으로 PDF 변환을 구현합니다.
 
-**MCP 서버 정보:**
-- 이름: [2b3pro/markdown2pdf-mcp](https://github.com/2b3pro/markdown2pdf-mcp)
-- 실행: `npx -y markdown2pdf-mcp@latest`
-- 도구: `create_pdf_from_markdown`
-- 한글 지원: Puppeteer(Chrome) 기반으로 완벽 지원
+**아키텍처:**
+
+```
+Supervisor Agent
+     ↓ (도구 호출)
+AgentCore Gateway
+     ↓ (MCP 프로토콜)
+Lambda Function (markdown2pdf MCP Server)
+     ↓
+PDF 생성 → S3 저장
+```
 
 **Claude Code에게 지시할 내용:**
 
 ```
-Supervisor Agent에 markdown2pdf MCP 서버를 연결해줘.
+markdown2pdf MCP 서버를 Lambda 함수로 구현해줘.
 
-MCP 서버 설정:
-{
-  "mcpServers": {
-    "markdown2pdf": {
-      "command": "npx",
-      "args": ["-y", "markdown2pdf-mcp@latest"],
-      "env": {
-        "M2P_OUTPUT_DIR": "/tmp/reports"
-      }
-    }
-  }
-}
+Lambda 함수 요구사항:
+- Runtime: Node.js 20.x
+- 마크다운 문자열을 받아 PDF로 변환
+- 생성된 PDF를 S3에 저장하고 pre-signed URL 반환
+- 한글 폰트 지원 (Lambda Layer에 Noto Sans CJK 포함)
 
-Supervisor의 시스템 프롬프트에 추가:
-"최종 보고서를 마크다운으로 작성한 뒤, create_pdf_from_markdown 도구로 PDF를 생성하세요."
+AgentCore Gateway 연결:
+- Supervisor Agent가 Gateway를 통해 Lambda MCP 서버를 호출하도록 설정
+- Gateway에 MCP 서버 엔드포인트 등록
+
+참고: https://github.com/2b3pro/markdown2pdf-mcp 의 구현 로직을 Lambda에 맞게 변환
 ```
+
+**검증 포인트:**
+- [ ] Lambda 함수가 마크다운을 받아 PDF를 S3에 저장하는가?
+- [ ] Supervisor가 AgentCore Gateway를 통해 Lambda MCP를 호출하는가?
+- [ ] 생성된 PDF에 한글이 정상 렌더링되는가?
 
 ---
 
@@ -326,7 +350,7 @@ streamlit run src/app.py --server.port 8501 --server.address 0.0.0.0
 | 4 | 프롬프트 캐시가 동작 | 두 번째 호출 시 cacheReadInputTokens > 0 |
 | 5 | S3 업로드 → 에이전트 분석 연동 | JSON 업로드 후 보고서 생성 |
 | 6 | 공유 메모리로 컨텍스트 전파 | Analysis가 Triage 결과를 참조 |
-| 7 | PDF 보고서 생성 | /tmp/reports/ 에 .pdf 파일 존재 |
+| 7 | PDF 보고서 생성 | Lambda MCP → S3에 PDF 저장, pre-signed URL 동작 |
 | 8 | Streamlit UI 접속 | 브라우저에서 http://<EC2-IP>:8501 접속 |
 
 ---
@@ -353,8 +377,8 @@ streamlit run src/app.py --server.port 8501 --server.address 0.0.0.0
 | 문제 | 원인 | 해결 |
 |------|------|------|
 | Claude Code가 Bedrock 연결 실패 | 환경 변수 미설정 | `CLAUDE_CODE_USE_BEDROCK=1` 확인 |
-| markdown2pdf MCP 서버 실패 | npx/node 미설치 | `node --version` 확인, 없으면 `nvm install 20` |
-| PDF 한글 깨짐 | Chrome 폰트 미설치 | EC2에 `sudo yum install google-noto-sans-cjk-fonts` |
+| markdown2pdf Lambda 실패 | Lambda 타임아웃 또는 메모리 부족 | Lambda 메모리 512MB+, 타임아웃 30초 이상 설정 |
+| PDF 한글 깨짐 | 폰트 미포함 | Lambda Layer에 Noto Sans CJK 폰트 추가 |
 | Streamlit 접속 불가 | Security Group 미설정 | EC2 SG에 8501 포트 인바운드 추가 |
 | Guardrail ValidationException | guardrail_id 오류 | `create_guardrail.py` 재실행 후 ID 확인 |
 | 프롬프트 캐시 미동작 | 시스템 프롬프트가 4,096 토큰 미만 | 프롬프트에 의학 지식/예시를 추가하여 길이 확보 |
