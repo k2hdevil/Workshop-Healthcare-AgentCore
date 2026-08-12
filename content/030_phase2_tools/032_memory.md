@@ -1,8 +1,3 @@
----
-title: "Phase 2-B: 메모리 통합"
-weight: 32
-time: "60분"
----
 
 # Phase 2-B: AgentCore Memory 통합 (60분)
 

@@ -1,8 +1,3 @@
----
-title: "Phase 2-C: Observability 설정"
-weight: 33
-time: "45분"
----
 
 # Phase 2-C: AgentCore Observability 설정 (45분)
 

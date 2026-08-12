@@ -1,8 +1,3 @@
----
-title: "Phase 4-A: 보안 강화 — Guardrails + 접근 제어"
-weight: 51
-time: "60분"
----
 
 # Phase 4-A: 보안 강화 — PHI 필터링 + 접근 제어 (60분)
 

@@ -1,8 +1,3 @@
----
-title: "Day 3 사전 설정: Claude Code on Bedrock 인증 구성"
-weight: 60
-time: "20분"
----
 
 # Claude Code on Bedrock 인증 구성 (20분)
 

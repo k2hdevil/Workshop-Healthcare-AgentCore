@@ -1,8 +1,3 @@
----
-title: "Phase 3-B: Supervisor Agent 구현"
-weight: 42
-time: "50분"
----
 
 # Phase 3-B: Supervisor Agent 구현 (50분)
 

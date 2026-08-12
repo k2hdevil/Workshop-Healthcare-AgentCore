@@ -1,8 +1,3 @@
----
-title: "Phase 1-B: AgentCore Runtime 배포"
-weight: 22
-time: "60분"
----
 
 # Phase 1-B: AgentCore Runtime 배포 (60분)
 

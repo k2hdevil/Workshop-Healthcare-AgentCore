@@ -1,8 +1,3 @@
----
-title: "Phase 4-C: 보안 침투 테스트"
-weight: 53
-time: "60분"
----
 
 # Phase 4-C: 보안 침투 테스트 (60분)
 
