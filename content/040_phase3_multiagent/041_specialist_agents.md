@@ -612,7 +612,7 @@ print(response.message['content'][0]['text'])
 
 ---
 
-완료 후 [Phase 3-B: Supervisor Agent 구현](./042_supervisor.md)으로 이동하세요.
+완료 후 [Phase 3-B: Supervisor Agent 구현](./042_supervisor.md)로 이동하세요.
 
 ---
 

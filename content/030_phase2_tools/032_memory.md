@@ -328,7 +328,7 @@ python consultation_agent.py
 
 ---
 
-완료 후 [**Phase 2-C: Observability 설정**](./033_observability.md)으로 이동하세요.
+완료 후 [Phase 2-C: Observability 설정](./033_observability.md)로 이동하세요.
 
 ---
 

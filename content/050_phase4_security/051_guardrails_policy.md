@@ -609,7 +609,7 @@ aws logs filter-log-events \
 
 ---
 
-완료 후 [Phase 4-B: 평가 파이프라인 구축](./052_evaluations.md)으로 이동하세요.
+완료 후 [Phase 4-B: 평가 파이프라인 구축](./052_evaluations.md)로 이동하세요.
 
 ---
 

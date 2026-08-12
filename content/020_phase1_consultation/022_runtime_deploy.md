@@ -485,8 +485,7 @@ uv run python invoke_agent.py
 
 ---
 
-완료 후 **Phase 1 리뷰**에서 팀원과 산출물을 공유하세요.
-그 다음 **030 Phase 2: 도구 통합 + 메모리 + Observability**로 이동합니다.
+완료 후 [Phase 2-A: 혈액 검사 도구 구현](../030_phase2_tools/031_lab_tools.md)로 이동하세요.
 
 ---
 

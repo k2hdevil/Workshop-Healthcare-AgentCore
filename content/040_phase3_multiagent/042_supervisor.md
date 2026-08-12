@@ -495,7 +495,7 @@ cat ~/agentcore/outputs/health_report_patient-001_*.md
 
 ---
 
-완료 후 [Phase 4-A: 보안 강화](../050_phase4_security/051_guardrails_policy.md)로 이동하세요.
+완료 후 [Phase 3-C: 컨텍스트 엔지니어링](./043_context_engineering.md)로 이동하세요.
 
 ---
 
