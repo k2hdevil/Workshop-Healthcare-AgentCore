@@ -144,3 +144,9 @@ Claude Code on Bedrock를 활용하여 Day 1-2에서 학습한 모든 요소를 
 ## 시작하기
 
 [Day 1 오프닝: 환경 설정 →](./content/010_opening/011_environment_setting.md)
+
+---
+
+## 제작 정보
+
+본 워크샵은 <img src="https://kiro.dev/favicon.ico" alt="Kiro" width="16" height="16"> [Kiro](https://kiro.dev)로 생성하였으며, HITL(Human-in-the-Loop)을 통해 컨텐츠의 정확성을 검수했습니다.
