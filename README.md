@@ -36,8 +36,8 @@ Phase 1: 에이전트 구축    Phase 3: 멀티 에이전트          Phase 5: �
                             └ 컨텍스트 엔지니어링          └ MCP PDF 서버
 Phase 2: 도구 + 운영       └ 프롬프트 캐시               └ Streamlit 배포
  └ 혈액검사 도구
- └ Memory (STM/LTM)      Phase 4: 보안 + 평가         Padlet 투표 + 시상
- └ Observability            └ Policy + Guardrails        + 수료
+ └ Memory (STM/LTM)      Phase 4: 보안 + 평가         결과 공유 + 수료
+ └ Observability            └ Policy + Guardrails
                             └ Evaluations
                             └ 침투 테스트
 ```
@@ -149,4 +149,4 @@ Claude Code on Bedrock를 활용하여 Day 1-2에서 학습한 모든 요소를 
 
 ## 제작 정보
 
-본 워크샵은 <img src="https://kiro.dev/favicon.ico" alt="Kiro" width="16" height="16"> [Kiro](https://kiro.dev)로 생성하였으며, HITL(Human-in-the-Loop)을 통해 컨텐츠의 정확성을 검수했습니다.
+본 워크샵은 <img src="https://kiro.dev/favicon.ico" alt="Kiro" width="32" height="32"> [Kiro](https://kiro.dev)로 생성하였으며, HITL(Human-in-the-Loop)을 통해 컨텐츠의 정확성을 검수했습니다.
