@@ -52,15 +52,6 @@ Claude Code는 Anthropic이 개발한 **에이전틱(agentic) 코딩 도구**입
 - **MCP(Model Context Protocol)** — 외부 도구/API와 연결하여 기능 확장 (Terraform Registry, AWS 문서 등)
 - **자율적 반복** — 오류 발생 시 스스로 원인을 분석하고 수정을 반복
 
-**IaC 작업에서의 장점:**
-
-이 워크샵에서 Claude Code를 사용하는 이유는 다음과 같습니다.
-
-1. **Terraform 코드 생성** — 모범 사례에 맞는 모듈 구조를 자연어 설명만으로 생성
-2. **즉시 검증** — 생성한 코드를 `terraform validate`, `terraform plan`으로 바로 검증
-3. **문서 참조** — MCP를 통해 Terraform Registry의 최신 프로바이더 문서를 실시간 조회
-4. **반복 수정** — plan 오류를 분석하고 코드를 자동으로 수정하는 피드백 루프
-5. **인프라 분석** — 배포된 리소스 상태를 확인하고 비용/보안 개선점을 제안
 
 ### 1.2 사전 요구 사항
 
