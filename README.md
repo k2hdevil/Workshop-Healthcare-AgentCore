@@ -23,6 +23,19 @@
 
 ---
 
+## 학습 목표
+
+본 워크샵을 수료하면 다음을 할 수 있습니다:
+
+1. Strands Agents SDK로 의료 상담 에이전트를 구축하고 AgentCore Runtime에 배포
+2. Agent-as-Tool 패턴으로 멀티 에이전트 협업 시스템 설계 및 구현
+3. AgentCore Memory, Observability, Policy, Evaluations를 활용한 프로덕션 운영
+4. Bedrock Guardrails로 PHI 필터링 및 Cedar 정책으로 접근 제어 구현
+5. 보안 침투 테스트 및 LLM-as-Judge 평가 파이프라인 구축
+6. 대한민국 의료법/개인정보보호법을 고려한 AI 시스템 설계
+
+---
+
 ## 커리큘럼 구성
 
 ```
@@ -141,6 +154,78 @@ Claude Code on Bedrock를 활용하여 Day 1-2에서 학습한 모든 요소를 
 
 ---
 
+## 사용 AWS 서비스
+
+| 서비스 | 용도 |
+|--------|------|
+| Amazon Bedrock (Claude Sonnet 4.5) | LLM 추론 |
+| Bedrock AgentCore Runtime | 에이전트 호스팅/배포 |
+| Bedrock AgentCore Memory | 대화 이력 관리 (STM + LTM) |
+| Bedrock AgentCore Observability | CloudWatch GenAI 모니터링 |
+| Bedrock AgentCore Policy | Cedar 기반 접근 제어 |
+| Bedrock AgentCore Evaluations | LLM-as-Judge 품질 평가 |
+| Bedrock Guardrails | PHI/PII 필터링, 토픽 차단 |
+| Amazon CloudWatch | 메트릭/로그/알람 |
+| Amazon S3 | 환자 데이터 + 산출물 |
+
+---
+
+## 보안 계층 (4-Layer)
+
+```
+Layer 1: AgentCore Policy (Cedar 정책)
+  └ 입력 파라미터 검증 + 시간 기반 접근 제어
+
+Layer 2: AgentCore Runtime VPC 배포
+  └ "VPC and more" 마법사로 Private Subnet + NAT 생성
+
+Layer 3: Bedrock Guardrails
+  └ PHI 마스킹 + 진단/처방 차단 + 프롬프트 인젝션 방어
+
+Layer 4: 감사 로그 (Audit Trail)
+  └ 모든 데이터 접근 기록 + 개인정보보호법 증적
+```
+
+---
+
+## 대한민국 의료 규정 준수
+
+| 규정 | 워크샵 내 적용 |
+|------|--------------|
+| 의료법 제27조 | AI 면책 조항 필수 포함 (의료행위 불가 명시) |
+| 의료법 제21조 | 감사 로그 5년 보존 설계 |
+| 개인정보보호법 (PIPA) | Guardrails PHI 자동 마스킹 |
+| 식약처 SaMD 가이드라인 | "참고 정보 제공"으로 한정 (의료기기 비해당) |
+
+---
+
+## 전제 조건
+
+**필수 역량:**
+- Python 프로그래밍 (중급 이상)
+- AWS 기본 서비스 이해 (IAM, S3)
+- REST API / JSON 처리 경험
+- 생성형 AI 기본 개념
+
+**권장 사전 학습** (AWS Skill Builder):
+- Generative AI Fundamentals
+- Building Production-Ready AI Agents with Amazon Bedrock AgentCore
+
+---
+
+## 교육 특징
+
+| 특징 | 설명 |
+|------|------|
+| 시나리오 기반 | 2.5일 전체가 하나의 환자 시나리오로 연결 |
+| 코드 컴플리션 | 단순히 완성된 코드를 실행하는 것이 아닌 빈칸 채우기 방식 제공 |
+| 중간 체크포인트 | Day별 git tag로 뒤처진 참가자 구제 |
+| Challenge Task | 빠른 학습자를 위한 확장 과제 |
+| 보안 레드팀 | 공격자 관점 침투 테스트 (8개 시나리오) |
+| 결과 공유 + 수료 | Day 3 프로젝트 결과 공유 및 피드백 |
+
+---
+
 ## 시작하기
 
 [Day 1 오프닝: 환경 설정 →](./content/010_opening/011_environment_setting.md)
@@ -149,4 +234,4 @@ Claude Code on Bedrock를 활용하여 Day 1-2에서 학습한 모든 요소를 
 
 ## 제작 정보
 
-본 워크샵은 <img src="https://kiro.dev/favicon.ico" alt="Kiro" width="32" height="32"> [Kiro](https://kiro.dev)로 생성하였으며, HITL(Human-in-the-Loop)을 통해 컨텐츠의 정확성을 검수했습니다.
+본 워크샵은 <img src="https://kiro.dev/favicon.ico" alt="Kiro" width="20" height="20"> [Kiro](https://kiro.dev)로 생성하였으며, HITL(Human-in-the-Loop)을 통해 컨텐츠의 정확성을 검수했습니다.
