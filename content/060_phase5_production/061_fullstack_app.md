@@ -1,5 +1,5 @@
 
-# Phase 5: 풀스택 의료 AI 웹 애플리케이션 (150분)
+# Phase 5: 풀스택 의료 AI 웹 애플리케이션 (Day 3, 종일)
 
 ## 학습 목표
 
@@ -115,6 +115,8 @@ Claude Code on Bedrock를 활용하여 Day 1-2에서 개발한 에이전트 및 
 
 ## 실습 절차 (예시)
 
+### 오전: 에이전트 배포 + 보안/성능 설정 (09:30-12:00)
+
 ### Step 1: AgentCore Runtime 배포 — 4개 에이전트 (09:30-10:00)
 
 Day 1-2에서 개발한 에이전트 코드를 Container 배포 방식으로 AgentCore Runtime에 배포합니다.
@@ -161,7 +163,7 @@ supervisor_agent가 아래 순서로 전문 에이전트를 호출하도록 구�
 
 ---
 
-### Step 3: Guardrail 설정 (10:20-10:35)
+### Step 3: Guardrail 설정 (10:20-10:50)
 
 Day 2 Phase 4-A에서 학습한 Guardrail을 Supervisor Agent에 적용합니다.
 
@@ -186,7 +188,7 @@ supervisor_agent의 BedrockModel에 guardrail을 설정해줘.
 
 ---
 
-### Step 4: 프롬프트 캐시 적용 (10:35-10:50)
+### Step 4: 프롬프트 캐시 적용 (10:50-11:20)
 
 Day 2 Phase 3-C에서 학습한 프롬프트 캐시를 3개 전문 에이전트에 적용합니다.
 
@@ -211,7 +213,19 @@ import 경로: from strands.models.bedrock import CacheConfig, CacheToolsConfig
 
 ---
 
-### Step 5: S3 데이터 연동 (10:50-11:10)
+### 중간 점검 (11:20-12:00)
+
+여기까지 배포한 4개 에이전트가 정상 동작하는지 점검합니다. Guardrail 차단 테스트, 프롬프트 캐시 히트 여부(`cacheReadInputTokens`)를 확인하고, 막힌 부분은 Claude Code에게 다시 질문하여 해결하세요.
+
+---
+
+**점심 (12:00-13:00)**
+
+---
+
+### 오후: 데이터 연동 + 프론트엔드 배포 (13:00-15:30)
+
+### Step 5: S3 데이터 연동 (13:00-13:30)
 
 건강검진 데이터를 S3에 업로드하면 에이전트가 조회할 수 있도록 도구를 구현합니다.
 
@@ -237,7 +251,7 @@ def upload_patient_data(patient_id: str, data: dict) -> str:
 
 ---
 
-### Step 6: 공유 메모리 설정 (11:10-11:25)
+### Step 6: 공유 메모리 설정 (13:30-14:00)
 
 4개 에이전트가 동일한 세션 컨텍스트를 공유하도록 AgentCore Memory를 설정합니다.
 
@@ -261,7 +275,7 @@ response = triage_agent(patient_data, session_id=session_id)
 
 ---
 
-### Step 7: mcp-pdf MCP 서버 연결 (11:25-11:40)
+### Step 7: mcp-pdf MCP 서버 연결 (14:00-14:40)
 
 [mcp-z/mcp-pdf](https://github.com/mcp-z/mcp-pdf) MCP 서버를 **Lambda 함수로 구현**하고, Supervisor 에이전트가 **AgentCore Gateway**를 통해 연계하는 방식으로 PDF 변환을 구현합니다.
 
@@ -317,7 +331,7 @@ AgentCore Gateway 연결:
 
 ---
 
-### Step 8: Streamlit 프론트엔드 구현 및 배포 (11:40-12:00)
+### Step 8: Streamlit 프론트엔드 구현 및 배포 (14:40-15:30)
 
 **Claude Code에게 지시할 내용:**
 
@@ -365,9 +379,9 @@ streamlit run src/app.py --server.port 8501 --server.address 0.0.0.0
 
 ---
 
-## 결과물 공유 및 피드백 (12:00-12:20)
+## 결과물 공유 및 피드백 (15:40-16:10)
 
-구축한 웹 앱을 팀원들과 공유하고 피드백을 주고받습니다:
+15:30-15:40 짧은 휴식 후, 구축한 웹 앱을 팀원들과 공유하고 피드백을 주고받습니다:
 
 1. **Streamlit UI 데모** — 실제 건강검진 데이터로 분석 실행
 2. **PDF 보고서 확인** — 생성된 PDF 파일 (한글 렌더링 확인)
@@ -388,7 +402,26 @@ streamlit run src/app.py --server.port 8501 --server.address 0.0.0.0
 
 ---
 
-## 수료
+## 프로덕션 규모 앱 배포시 고려사항 (16:10-16:40)
+
+오늘 구축한 웹 앱은 워크샵 환경(단일 EC2, Public Subnet, 기본 IAM 정책)에서 동작합니다. 실제 서비스로 운영하려면 아래 항목을 추가로 고려해야 합니다.
+
+| 영역 | 워크샵 환경 | 프로덕션 환경 |
+|------|-----------|-------------|
+| 네트워크 | EC2 Public Subnet 직접 접속 | VPC Private Subnet + ALB + HTTPS(ACM) |
+| 인증/인가 | 미적용 (누구나 접속) | Cognito 사용자 인증 + AgentCore Gateway + Cedar Policy |
+| 프론트엔드 배포 | EC2에서 `streamlit run` 직접 실행 | ECS Fargate 또는 App Runner + Auto Scaling |
+| 데이터 접근 제어 | 코드 레벨 ALLOWED_PATIENTS | Cedar Policy 기반 세밀한 인가 (Day 2에서 학습) |
+| 모니터링 | 콘솔 로그 확인 | CloudWatch 알람 + 비용 추적 대시보드 |
+| 평가/품질 관리 | 수동 실행 (Day 2 Phase 4-B) | CI/CD 파이프라인에 evaluation 자동화 통합 |
+| 규정 준수 | 로컬 감사 로그 | S3 Glacier 장기 보존 (의료법 기준 5년) |
+| 장애 대응 | 없음 | Multi-AZ 배포 + 자동 재시작 + 알람 |
+
+> **핵심**: 워크샵에서는 빠른 반복과 학습에 집중했지만, 실제 배포 전에는 반드시 네트워크 격리, 인증/인가, 모니터링, 규정 준수를 갖춰야 합니다. Day 2에서 학습한 Guardrails, Cedar Policy, 감사 로그는 이미 프로덕션 대비의 첫걸음입니다.
+
+---
+
+## 수료 (16:40-17:00)
 
 모든 단계를 완료하면 **Healthcare Agentic AI Workshop** 수료 자격이 부여됩니다.
 
@@ -406,10 +439,4 @@ streamlit run src/app.py --server.port 8501 --server.address 0.0.0.0
 
 ### Next Steps
 
-| 단계 | 내용 |
-|------|------|
-| 프로덕션 배포 | VPC Private Subnet + ALB + HTTPS |
-| 인증/인가 | Cognito + AgentCore Gateway + Cedar Policy |
-| 모니터링 강화 | CloudWatch 알람 + 비용 추적 대시보드 |
-| 평가 자동화 | CI/CD에 evaluation 파이프라인 통합 |
-| 규정 준수 | 감사 로그 S3 Glacier 장기 보존 (5년) |
+프로덕션 규모로 확장할 때는 위 [프로덕션 규모 앱 배포시 고려사항](#프로덕션-규모-앱-배포시-고려사항-1610-1640) 표를 참고하여 네트워크, 인증/인가, 모니터링, 규정 준수를 순차적으로 보강하세요.
